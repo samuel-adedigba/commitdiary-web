@@ -1,29 +1,47 @@
 {
-  "name": "web-dashboard",
-  "version": "0.1.0",
+  "name": "@commitdiary/web-dashboard",
+  "version": "1.0.0",
   "private": true,
+  "author": {
+    "name": "CommitDiary Team",
+    "url": "https://github.com/samuel-adedigba/Commit-Diary-Vscode-Extension"
+  },
+  "keywords": [
+    "react",
+    "javascript",
+    "commitdiary",
+    "nextjs",
+    "nextjs13",
+    "commit-tracker",
+    "developer-tools",
+    "git-analytics"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "next lint"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.81.1",
-    "next": "14.2.7",
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
-  },
-  "devDependencies": {
-    "@types/node": "^20.19.24",
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19",
-    "autoprefixer": "^10.4.22",
-    "eslint": "^9.39.1",
-    "eslint-config-next": "16.0.1",
-    "postcss": "^8.5.6",
-    "prettier": "^3.6.2",
-    "tailwindcss": "^3.4.18",
-    "typescript": "^5.9.3"
+    "@vercel/analytics": "^1.0.1",
+    "bootstrap": "^5.3.1",
+    "eslint": "8.46.0",
+    "eslint-config-next": "13.4.12",
+    "next": "13.4.12",
+    "react": "18.2.0",
+    "react-bootstrap": "^2.8.0",
+    "react-copy-to-clipboard": "^5.1.0",
+    "react-dom": "18.2.0",
+    "react-dropzone": "^14.2.3",
+    "react-feather": "^2.0.10",
+    "react-responsive": "^9.0.2",
+    "react-select": "^5.7.4",
+    "sass": "^1.64.2",
+    "simplebar": "^6.2.5",
+    "simplebar-react": "^3.2.4",
+    "uuid": "^9.0.0",
+    "classnames": "^2.3.2",
+    "@tanstack/react-table": "^8.10.0"
   }
 }

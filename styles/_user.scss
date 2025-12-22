@@ -1,0 +1,32 @@
+// 
+// user.scss
+// Use this to write your custom SCSS
+//
+
+html, body {
+    font-family: $font-family-base !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+    font-family: $font-family-heading !important;
+    font-weight: $headings-font-weight;
+}
+
+p, span, div, li, a {
+    font-family: $font-family-base;
+}
+
+button, input, optgroup, select, textarea {
+    font-family: $font-family-base !important;
+}
+
+.btn {
+    font-family: $font-family-base;
+    font-weight: 500;
+}
+
+.navbar-brand {
+    font-family: $font-family-heading !important;
+}

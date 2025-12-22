@@ -1,0 +1,17 @@
+//
+// user-variables.scss
+// Use this to overwrite Bootstrap and Commit Diary variables
+//
+// Example of a variable override to change Commit Diary primary color
+// Remove the "//" to comment it in and see it in action!
+// $primary: #000;
+
+$font-family-sans-serif: "Poppins", sans-serif;
+$font-family-base: $font-family-sans-serif;
+$font-family-heading: $font-family-sans-serif;
+
+// Typography refinements
+$font-size-base: 0.95rem; // Slightly larger for Poppins
+$font-weight-base: 400;
+$headings-font-weight: 600;
+$headings-color: #1e293b;
