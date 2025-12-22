@@ -3,6 +3,7 @@
 // import node module libraries
 import { Row, Col, Card, Form, Button, Image, Alert } from "react-bootstrap";
 import Link from "next/link";
+import NextImage from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -96,8 +97,15 @@ const SignIn = () => {
             <div className="mb-4">
               <Link
                 href="/"
-                className="d-flex align-items-center mb-4 text-decoration-none"
+                className="d-flex align-items-center mb-4 text-decoration-none gap-3"
               >
+                <NextImage
+                  src="/images/logo.png"
+                  alt="CommitDiary Logo"
+                  width={60}
+                  height={60}
+                  style={{ objectFit: "contain" }}
+                />
                 <span className="h2 fw-bold mb-0 text-primary">
                   CommitDiary
                 </span>

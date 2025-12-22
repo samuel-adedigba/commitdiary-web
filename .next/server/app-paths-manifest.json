@@ -1,9 +1,0 @@
-{
-  "/(dashboard)/page": "app/(dashboard)/page.js",
-  "/(dashboard)/commits/page": "app/(dashboard)/commits/page.js",
-  "/(dashboard)/repositories/page": "app/(dashboard)/repositories/page.js",
-  "/(dashboard)/shares/page": "app/(dashboard)/shares/page.js",
-  "/s/[username]/[token]/page": "app/s/[username]/[token]/page.js",
-  "/(auth)/authentication/sign-in/page": "app/(auth)/authentication/sign-in/page.js",
-  "/(dashboard)/pages/settings/page": "app/(dashboard)/pages/settings/page.js"
-}

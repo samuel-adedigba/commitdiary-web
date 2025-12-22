@@ -224,7 +224,6 @@ function DataTable<T>(props: DataTableProps<T>) {
 
   const table = useReactTable({
     data,
-    // eslint-disable-next-line  @typescript-eslint/no-explicit-any
     columns: finalColumns as ColumnDef<unknown | object | any[], any>[],
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),

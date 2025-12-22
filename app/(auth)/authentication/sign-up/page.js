@@ -3,6 +3,7 @@
 // import node module libraries
 import { Row, Col, Card, Form, Button, Image } from "react-bootstrap";
 import Link from "next/link";
+import NextImage from "next/image";
 
 // import hooks
 import useMounted from "hooks/useMounted";
@@ -17,11 +18,18 @@ const SignUp = () => {
           {/* Card body */}
           <Card.Body className="p-6">
             <div className="mb-4">
-                  {/* <Link href="/"><Image src="/images/brand/logo/logo-primary.svg" className="mb-2" alt="" /></ */}
+              {/* <Link href="/"><Image src="/images/brand/logo/logo-primary.svg" className="mb-2" alt="" /></ */}
               <Link
                 href="/"
-                className="d-flex align-items-center mb-4 text-decoration-none"
+                className="d-flex align-items-center mb-4 text-decoration-none gap-3"
               >
+                <NextImage
+                  src="/images/logo.png"
+                  alt="CommitDiary Logo"
+                  width={60}
+                  height={60}
+                  style={{ objectFit: "contain" }}
+                />
                 <span className="h2 fw-bold mb-0 text-primary">
                   CommitDiary
                 </span>

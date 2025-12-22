@@ -2,6 +2,7 @@
 // import node module libraries
 import { Fragment, useContext } from "react";
 import Link from "next/link";
+import NextImage from "next/image";
 import { usePathname } from "next/navigation";
 import { useMediaQuery } from "react-responsive";
 import { ListGroup, Card, Image, Badge } from "react-bootstrap";
@@ -93,9 +94,17 @@ const NavbarVertical = (props) => {
     <Fragment>
       <SimpleBar style={{ maxHeight: "100vh" }}>
         <div className="nav-scroller">
-          <Link href="/" className="navbar-brand d-flex align-items-center">
-
-						{/* <Image src="/images/brand/logo/logo.svg" alt="" /> */}
+          <Link
+            href="/"
+            className="navbar-brand d-flex align-items-center gap-2"
+          >
+            <Image
+              src="/images/logo.png"
+              alt="CommitDiary Logo"
+              width={50}
+              height={50}
+              style={{ objectFit: "contain" }}
+            />
             <span className="h3 fw-bold mb-0 text-white">CommitDiary</span>
           </Link>
         </div>

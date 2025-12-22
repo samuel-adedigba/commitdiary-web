@@ -7,6 +7,17 @@ export const metadata = {
   description:
     "Commit Diary is a professional dashboard for tracking, categorizing, and visualizing your git commit history.",
   keywords: "commit-diary, git-analytics, developer-tools, commit-tracker",
+  icons: {
+    icon: "/images/logo.png",
+    shortcut: "/images/logo.png",
+    apple: "/images/logo.png",
+  },
+  openGraph: {
+    title: "Commit Diary - Insights into your code activity",
+    description:
+      "Professional dashboard for tracking and visualizing your git commit history.",
+    images: ["/images/logo.png"],
+  },
 };
 
 export default function RootLayout({ children }) {
