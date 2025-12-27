@@ -1,6 +1,20 @@
 import { supabase } from '/lib/supabaseClient'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.commitdiary.com'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+const LOG_LEVEL = process.env.LOG_LEVEL || 'error'
+
+function logDebug(...args: any[]) {
+    if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.log(...args)
+    }
+}
+function logError(...args: any[]) {
+    if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error(...args)
+    }
+}
 
 export interface Commit {
     id: string
@@ -74,9 +88,9 @@ export async function getCommits(params?: {
     })
 
     const url = `${API_URL}/v1/users/${user.id}/commits?${query}`
-    console.log('[API Client] Fetching commits from:', url)
-    console.log('[API Client] API_URL:', API_URL)
-    console.log('[API Client] User ID:', user.id)
+    logDebug('[API Client] Fetching commits from:', url)
+    logDebug('[API Client] API_URL:', API_URL)
+    logDebug('[API Client] User ID:', user.id)
 
     const response = await fetch(url, {
         headers: {
@@ -84,16 +98,16 @@ export async function getCommits(params?: {
         }
     })
 
-    console.log('[API Client] Response status:', response.status)
+    logDebug('[API Client] Response status:', response.status)
 
     if (!response.ok) {
         const errorText = await response.text()
-        console.error('[API Client] Error response:', errorText)
+        logError('[API Client] Error response:', errorText)
         throw new Error(`Failed to fetch commits: ${response.statusText}`)
     }
 
     const data = await response.json()
-    console.log('[API Client] Received data:', data)
+    logDebug('[API Client] Received data:', data)
     
     return data
 }

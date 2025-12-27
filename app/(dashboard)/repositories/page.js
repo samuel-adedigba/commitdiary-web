@@ -21,7 +21,10 @@ const RepositoriesPage = () => {
       const data = await apiClient.getRepositories();
       setRepositories(data);
     } catch (error) {
-      console.error("Failed to fetch repositories:", error);
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error("Failed to fetch repositories:", error);
+      }
     } finally {
       setLoading(false);
     }
@@ -55,30 +58,30 @@ const RepositoriesPage = () => {
           </div>
         ),
       },
-      // {
-      //   header: "Branch",
-      //   accessorKey: "branch",
-      //   cell: ({ row }) =>
-      //     row.original.branch ? (
-      //       <Badge bg="light" text="dark">
-      //         {row.original.branch}
-      //       </Badge>
-      //     ) : (
-      //       <span className="text-muted">-</span>
-      //     ),
-      // },
-      // {
-      //   header: "Remote",
-      //   accessorKey: "remote_url",
-      //   cell: ({ row }) =>
-      //     row.original.remote_url ? (
-      //       <Badge bg="secondary">
-      //         {new URL(row.original.remote_url).hostname}
-      //       </Badge>
-      //     ) : (
-      //       <span className="text-muted">Local</span>
-      //     ),
-      // },
+      {
+        header: "Branch",
+        accessorKey: "branch",
+        cell: ({ row }) =>
+          row.original.branch ? (
+            <Badge bg="light" text="dark">
+              {row.original.branch}
+            </Badge>
+          ) : (
+            <span className="text-muted">-</span>
+          ),
+      },
+      {
+        header: "Remote",
+        accessorKey: "remote_url",
+        cell: ({ row }) =>
+          row.original.remote_url ? (
+            <Badge bg="secondary">
+              {new URL(row.original.remote_url).hostname}
+            </Badge>
+          ) : (
+            <span className="text-muted">Local</span>
+          ),
+      },
       {
         header: "Commits",
         accessorKey: "commit_count",

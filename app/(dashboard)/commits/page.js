@@ -1,4 +1,13 @@
 "use client";
+
+const LOG_LEVEL = process.env.LOG_LEVEL || "error";
+function logDebug(...args) {
+  if (LOG_LEVEL === "debug") console.log(...args);
+}
+function logError(...args) {
+  if (LOG_LEVEL === "debug" || LOG_LEVEL === "error") console.error(...args);
+}
+
 import { Fragment, useEffect, useState, useMemo } from "react";
 import {
   Container,
@@ -22,6 +31,8 @@ const CommitsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dateRange, setDateRange] = useState("all");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -37,26 +48,35 @@ const CommitsPage = () => {
       };
 
       if (dateRange !== "all") {
-        const days = dateRange === "7d" ? 7 : dateRange === "30d" ? 30 : 90;
-        const date = new Date();
-        date.setDate(date.getDate() - days);
-        params.from = date.toISOString();
+        if (dateRange === "custom") {
+          if (customStartDate)
+            params.from = new Date(customStartDate).toISOString();
+          if (customEndDate) params.to = new Date(customEndDate).toISOString();
+        } else {
+          const days = dateRange === "7d" ? 7 : dateRange === "30d" ? 30 : 90;
+          const date = new Date();
+          date.setDate(date.getDate() - days);
+          params.from = date.toISOString();
+        }
       }
       if (categoryFilter !== "all") {
         params.category = categoryFilter;
       }
+      if (searchTerm) {
+        params.search = searchTerm;
+      }
 
       const response = await apiClient.getCommits(params);
-      console.log("[Commits Page] Fetched commits:", response);
-      console.log("[Commits Page] Total commits:", response.total);
-      console.log("[Commits Page] Commits length:", response.commits?.length);
+      logDebug("[Commits Page] Fetched commits:", response);
+      logDebug("[Commits Page] Total commits:", response.total);
+      logDebug("[Commits Page] Commits length:", response.commits?.length);
 
       setCommits(response.commits || []);
       const total = response.total || response.commits?.length || 0;
-      console.log("[Commits Page] Setting totalCommits to:", total);
+      logDebug("[Commits Page] Setting totalCommits to:", total);
       setTotalCommits(total);
     } catch (error) {
-      console.error("Failed to fetch commits:", error);
+      logError("Failed to fetch commits:", error);
       setCommits([]);
       setTotalCommits(0);
     } finally {
@@ -66,9 +86,12 @@ const CommitsPage = () => {
 
   useEffect(() => {
     setCurrentPage(1); // Reset to page 1 when filters change
-    fetchCommits(1, pageSize);
+    const timeoutId = setTimeout(() => {
+      fetchCommits(1, pageSize);
+    }, 500); // Debounce search
+    return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateRange, categoryFilter]);
+  }, [dateRange, categoryFilter, customStartDate, customEndDate, searchTerm]);
 
   // Fetch when page or page size changes
   useEffect(() => {
@@ -104,16 +127,6 @@ const CommitsPage = () => {
     };
     return colors[category?.toLowerCase()] || "primary";
   };
-
-  // Client-side search filter (applied on current page only)
-  const displayedCommits = Array.isArray(commits)
-    ? commits.filter(
-        (commit) =>
-          !searchTerm ||
-          commit.message?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          commit.repo_name?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : [];
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -271,8 +284,31 @@ const CommitsPage = () => {
               <option value="7d">Last 7 Days</option>
               <option value="30d">Last 30 Days</option>
               <option value="90d">Last 90 Days</option>
+              <option value="custom">Custom Range</option>
             </Form.Select>
           </Col>
+          {dateRange === "custom" && (
+            <Col
+              xl={3}
+              lg={12}
+              md={12}
+              xs={12}
+              className="mt-3 mt-xl-0 d-flex gap-2"
+            >
+              <Form.Control
+                type="date"
+                placeholder="Start Date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+              />
+              <Form.Control
+                type="date"
+                placeholder="End Date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+              />
+            </Col>
+          )}
         </Row>
 
         <Row>
@@ -281,7 +317,7 @@ const CommitsPage = () => {
               <Card.Body className="p-0">
                 <DataTable
                   columns={columns}
-                  data={displayedCommits}
+                  data={commits}
                   loading={loading}
                   noData={commits.length === 0}
                   pagingData={{

@@ -49,7 +49,10 @@ const Home = () => {
         Array.isArray(commitsResponse?.commits) ? commitsResponse.commits : []
       );
     } catch (error) {
-      console.error("Failed to fetch dashboard data:", error);
+      if (process.env.NODE_ENV === "development") {
+        // eslint-disable-next-line no-console
+        console.error("Failed to fetch dashboard data:", error);
+      }
     } finally {
       setLoading(false);
     }
@@ -60,7 +63,7 @@ const Home = () => {
         {
           id: 1,
           title: "Total Commits",
-          value: metrics.totalCommits || 0,
+          value: metrics.total_commits || 0,
           icon: <GitCommit className="fs-4" />,
           iconColorVariant: "primary",
           classValue: "mb-4",
@@ -76,15 +79,25 @@ const Home = () => {
         {
           id: 3,
           title: "Categories",
-          value: metrics.categoriesCount || 0,
+          value: metrics.by_category?.length || 0,
           icon: <Layers className="fs-4" />,
           iconColorVariant: "warning",
           classValue: "mb-4",
         },
         {
           id: 4,
-          title: "This Week",
-          value: metrics.weeklyCommits || 0,
+          title: "Commits (Last 7 Days)",
+          value: metrics.by_date
+            ? metrics.by_date
+                .filter((d) => {
+                  const date = new Date(d.date);
+                  const now = new Date();
+                  const diffTime = Math.abs(now - date);
+                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                  return diffDays <= 7;
+                })
+                .reduce((acc, curr) => acc + curr.count, 0)
+            : 0,
           icon: <TrendingUp className="fs-4" />,
           iconColorVariant: "info",
           classValue: "mb-4",

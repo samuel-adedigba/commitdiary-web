@@ -1,5 +1,18 @@
 'use client'
 
+function logDebug(...args: any[]) {
+  if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
+    console.log(...args)
+  }
+}
+function logError(...args: any[]) {
+  if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
+    console.error(...args)
+  }
+}
+
 import { useEffect, useState } from 'react'
 import { supabase } from '/lib/supabaseClient'
 import type { RealtimeChannel } from '@supabase/supabase-js'
@@ -27,11 +40,11 @@ export function useRealtimeCommits(onUpdate?: (update: CommitUpdate) => void) {
         const { data: { user } } = await supabase.auth.getUser()
         
         if (!user) {
-          console.log('[Realtime] No user authenticated, skipping subscription')
+          logDebug('[Realtime] No user authenticated, skipping subscription')
           return
         }
 
-        console.log('[Realtime] Setting up subscription for user:', user.id)
+        logDebug('[Realtime] Setting up subscription for user:', user.id)
 
         // Create channel for commits table
         channel = supabase
@@ -45,7 +58,7 @@ export function useRealtimeCommits(onUpdate?: (update: CommitUpdate) => void) {
               filter: `user_id=eq.${user.id}` // Only subscribe to current user's commits
             },
             (payload) => {
-              console.log('[Realtime] Commit change detected:', payload.eventType, payload.new)
+              logDebug('[Realtime] Commit change detected:', payload.eventType, payload.new)
               
               const update: CommitUpdate = {
                 type: payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE',
@@ -70,12 +83,12 @@ export function useRealtimeCommits(onUpdate?: (update: CommitUpdate) => void) {
             }
           )
           .subscribe((status) => {
-            console.log('[Realtime] Subscription status:', status)
+            logDebug('[Realtime] Subscription status:', status)
             setIsConnected(status === 'SUBSCRIBED')
           })
 
       } catch (error) {
-        console.error('[Realtime] Error setting up subscription:', error)
+        logError('[Realtime] Error setting up subscription:', error)
       }
     }
 
@@ -84,7 +97,7 @@ export function useRealtimeCommits(onUpdate?: (update: CommitUpdate) => void) {
     // Cleanup subscription on unmount
     return () => {
       if (channel) {
-        console.log('[Realtime] Cleaning up subscription')
+        logDebug('[Realtime] Cleaning up subscription')
         supabase.removeChannel(channel)
       }
     }

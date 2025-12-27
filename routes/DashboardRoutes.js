@@ -1,4 +1,4 @@
-import { v4 as uuid } from 'uuid';
+import { v4 as uuid } from "uuid";
 /**
  *  All Dashboard Routes
  *
@@ -24,36 +24,42 @@ import { v4 as uuid } from 'uuid';
  */
 
 export const DashboardMenu = [
-	{
-		id: uuid(),
-		title: 'Dashboard',
-		icon: 'home',
-		link: '/'
-	},
-	{
-		id: uuid(),
-		title: 'Commits',
-		icon: 'git-commit',
-		link: '/commits'
-	},
-	{
-		id: uuid(),
-		title: 'Repositories',
-		icon: 'git-branch',
-		link: '/repositories'
-	},
-	{
-		id: uuid(),
-		title: 'Shares',
-		icon: 'share-2',
-		link: '/shares'
-	},
-	{
-		id: uuid(),
-		title: 'Settings',
-		icon: 'settings',
-		link: '/pages/settings'
-	}
+  {
+    id: uuid(),
+    title: "Dashboard",
+    icon: "home",
+    link: "/",
+  },
+  {
+    id: uuid(),
+    title: "Commits",
+    icon: "git-commit",
+    link: "/commits",
+  },
+  {
+    id: uuid(),
+    title: "Repositories",
+    icon: "git-branch",
+    link: "/repositories",
+  },
+  {
+    id: uuid(),
+    title: "Shares",
+    icon: "share-2",
+    link: "/shares",
+  },
+  {
+    id: uuid(),
+    title: "Settings",
+    icon: "settings",
+    link: "/pages/settings",
+  },
+  {
+    id: uuid(),
+    title: "Documentation",
+    icon: "book-open",
+    link: "/documentation",
+  },
 ];
 
 export default DashboardMenu;

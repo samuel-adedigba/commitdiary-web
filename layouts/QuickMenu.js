@@ -47,6 +47,26 @@ const QuickMenu = () => {
         bsPrefix="navbar-nav"
         className="navbar-right-wrap ms-auto d-flex nav-top-wrap"
       >
+        <li className="dropdown stopevent me-2">
+          <a
+            href="https://marketplace.visualstudio.com/items?itemName=samuel-adedigba.commitdiary-extension&ssr=false#overview"
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-light btn-icon rounded-circle indicator indicator-primary text-muted"
+            title="VS Code Marketplace"
+          >
+            <i className="fe fe-package"></i>
+          </a>
+        </li>
+        <li className="dropdown stopevent me-2">
+          <Link
+            href="/documentation"
+            className="btn btn-light btn-icon rounded-circle indicator indicator-primary text-muted"
+            title="Documentation"
+          >
+            <i className="fe fe-book-open"></i>
+          </Link>
+        </li>
         <Dropdown as="li" className="stopevent">
           <Dropdown.Toggle
             as="a"
@@ -140,6 +160,26 @@ const QuickMenu = () => {
         bsPrefix="navbar-nav"
         className="navbar-right-wrap ms-auto d-flex nav-top-wrap"
       >
+        <li className="dropdown stopevent me-2">
+          <a
+            href="https://marketplace.visualstudio.com/items?itemName=samuel-adedigba.commitdiary-extension&ssr=false#overview"
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-light btn-icon rounded-circle indicator indicator-primary text-muted"
+            title="VS Code Marketplace"
+          >
+            <i className="fe fe-package"></i>
+          </a>
+        </li>
+        <li className="dropdown stopevent me-2">
+          <Link
+            href="/documentation"
+            className="btn btn-light btn-icon rounded-circle indicator indicator-primary text-muted"
+            title="Documentation"
+          >
+            <i className="fe fe-book-open"></i>
+          </Link>
+        </li>
         <Dropdown as="li" className="stopevent">
           <Dropdown.Toggle
             as="a"

@@ -36,7 +36,7 @@ export async function GET(request, { params }) {
       headers: {
         "Content-Type": "image/svg+xml",
         "Cache-Control":
-          "public, max-age=300, s-maxage=1800, stale-while-revalidate=600",
+          "public, max-age=300, s-maxage=600, stale-while-revalidate=400",
       },
     });
   } catch (error) {

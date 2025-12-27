@@ -267,90 +267,92 @@ function DataTable<T>(props: DataTableProps<T>) {
 
   return (
     <Loading loading={Boolean(loading && data.length !== 0)} type="cover">
-      <Table {...rest}>
-        <THead>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <Tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                return (
-                  <Th key={header.id} colSpan={header.colSpan}>
-                    {header.isPlaceholder ? null : (
-                      <div
-                        className={classNames(
-                          header.column.getCanSort() &&
-                          "cursor-pointer select-none point",
-                          loading && "pointer-events-none"
-                        )}
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                        {header.column.getCanSort() && (
-                          <Sorter sort={header.column.getIsSorted()} />
-                        )}
-                      </div>
-                    )}
-                  </Th>
-                );
-              })}
-            </Tr>
-          ))}
-        </THead>
-        {loading && data.length === 0 ? (
-          <TableRowSkeleton
-            columns={(finalColumns as Array<T>).length}
-            rows={pagingData.pageSize}
-            avatarInColumns={skeletonAvatarColumns}
-            avatarProps={skeletonAvatarProps}
-          />
-        ) : (
-          <TBody className="overflow-auto" >
-            {noData ? (
-              <Tr>
-                <Td className="text-center py-5" colSpan={finalColumns.length}>
-                  <div className="d-flex flex-column align-items-center gap-3">
-                    {customNoDataIcon ? (
-                      customNoDataIcon
-                    ) : (
-                      <>
-                        <FileNotFound />
-                        <span className="fw-semibold">No data found!</span>
-                      </>
-                    )}
-                  </div>
-                </Td>
-              </Tr>
-            ) : (
-              table
-                .getRowModel()
-                .rows.slice(0, pageSize)
-                .map((row) => {
+      <div className="overflow-auto">
+        <Table {...rest}>
+          <THead>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <Tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
                   return (
-                    <Tr key={row.id}>
-                      {row.getVisibleCells().map((cell) => {
-                        return (
-                          <Td
-                            key={cell.id}
-                            style={{
-                              width: cell.column.getSize(),
-                            }}
-                          >
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
-                          </Td>
-                        );
-                      })}
-                    </Tr>
+                    <Th key={header.id} colSpan={header.colSpan}>
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className={classNames(
+                            header.column.getCanSort() &&
+                            "cursor-pointer select-none point",
+                            loading && "pointer-events-none"
+                          )}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                          {header.column.getCanSort() && (
+                            <Sorter sort={header.column.getIsSorted()} />
+                          )}
+                        </div>
+                      )}
+                    </Th>
                   );
-                })
-            )}
-          </TBody>
-        )}
-      </Table>
+                })}
+              </Tr>
+            ))}
+          </THead>
+          {loading && data.length === 0 ? (
+            <TableRowSkeleton
+              columns={(finalColumns as Array<T>).length}
+              rows={pagingData.pageSize}
+              avatarInColumns={skeletonAvatarColumns}
+              avatarProps={skeletonAvatarProps}
+            />
+          ) : (
+            <TBody className="overflow-auto" >
+              {noData ? (
+                <Tr>
+                  <Td className="text-center py-5" colSpan={finalColumns.length}>
+                    <div className="d-flex flex-column align-items-center gap-3">
+                      {customNoDataIcon ? (
+                        customNoDataIcon
+                      ) : (
+                        <>
+                          <FileNotFound />
+                          <span className="fw-semibold">No data found!</span>
+                        </>
+                      )}
+                    </div>
+                  </Td>
+                </Tr>
+              ) : (
+                table
+                  .getRowModel()
+                  .rows.slice(0, pageSize)
+                  .map((row) => {
+                    return (
+                      <Tr key={row.id}>
+                        {row.getVisibleCells().map((cell) => {
+                          return (
+                            <Td
+                              key={cell.id}
+                              style={{
+                                width: cell.column.getSize(),
+                              }}
+                            >
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </Td>
+                          );
+                        })}
+                      </Tr>
+                    );
+                  })
+              )}
+            </TBody>
+          )}
+        </Table>
+      </div>
       <div className="d-flex align-items-center justify-content-between mt-4">
         <Pagination
           pageSize={pageSize}

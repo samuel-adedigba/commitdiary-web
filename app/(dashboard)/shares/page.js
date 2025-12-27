@@ -39,6 +39,7 @@ const SharesPage = () => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [expiresInDays, setExpiresInDays] = useState("");
+  const [live, setLive] = useState(false);
 
   useEffect(() => {
     fetchShares();
@@ -51,7 +52,10 @@ const SharesPage = () => {
       const data = await apiClient.getShares();
       setShares(data.shares || []);
     } catch (error) {
-      console.error("Failed to fetch shares:", error);
+      if (process.env.NODE_ENV === "development") {
+        // eslint-disable-next-line no-console
+        console.error("Failed to fetch shares:", error);
+      }
       setError("Failed to load shares");
     } finally {
       setLoading(false);
@@ -61,9 +65,13 @@ const SharesPage = () => {
   const fetchRepositories = async () => {
     try {
       const data = await apiClient.getRepositories();
-      setRepositories(data.repos || []);
+      setRepositories(data || []);
+      console.log("repo", data);
     } catch (error) {
-      console.error("Failed to fetch repositories:", error);
+      if (process.env.NODE_ENV === "development") {
+        // eslint-disable-next-line no-console
+        console.error("Failed to fetch repositories:", error);
+      }
     }
   };
 
@@ -86,6 +94,7 @@ const SharesPage = () => {
         from: dateFrom || undefined,
         to: dateTo || undefined,
         expires_in_days: expiresInDays ? parseInt(expiresInDays) : undefined,
+        live: live,
       };
 
       const result = await apiClient.createShare(params);
@@ -100,7 +109,9 @@ const SharesPage = () => {
       setSelectedRepos([]);
       setDateFrom("");
       setDateTo("");
+      setDateTo("");
       setExpiresInDays("");
+      setLive(false);
 
       // Refresh shares list
       await fetchShares();
@@ -111,7 +122,10 @@ const SharesPage = () => {
         setSuccess("");
       }, 2000);
     } catch (error) {
-      console.error("Failed to create share:", error);
+      if (process.env.NODE_ENV === "development") {
+        // eslint-disable-next-line no-console
+        console.error("Failed to create share:", error);
+      }
       setError(error.message || "Failed to create share");
     } finally {
       setCreateLoading(false);
@@ -139,7 +153,10 @@ const SharesPage = () => {
       await fetchShares();
       setTimeout(() => setSuccess(""), 2000);
     } catch (error) {
-      console.error("Failed to revoke share:", error);
+      if (process.env.NODE_ENV === "development") {
+        // eslint-disable-next-line no-console
+        console.error("Failed to revoke share:", error);
+      }
       setError("Failed to revoke share");
     }
   };
@@ -156,7 +173,10 @@ const SharesPage = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error("Failed to export share:", error);
+      if (process.env.NODE_ENV === "development") {
+        // eslint-disable-next-line no-console
+        console.error("Failed to export share:", error);
+      }
       setError("Failed to export share");
     }
   };
@@ -449,6 +469,20 @@ const SharesPage = () => {
               />
               <Form.Text className="text-muted">
                 Common values: 7 (week), 30 (month), 365 (year)
+              </Form.Text>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Check
+                type="switch"
+                id="live-mode-switch"
+                label="Live Mode: Auto-update with new commits"
+                checked={live}
+                onChange={(e) => setLive(e.target.checked)}
+              />
+              <Form.Text className="text-muted">
+                If enabled, the share link will always show the latest data
+                (updated on access).
               </Form.Text>
             </Form.Group>
           </Modal.Body>

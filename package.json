@@ -17,12 +17,15 @@
     "git-analytics"
   ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "cross-env NODE_ENV=development next dev",
+    "build": "cross-env NODE_ENV=production next build",
+    "start": "cross-env NODE_ENV=production next start",
+    "start:prod": "cross-env NODE_ENV=production next start",
+    "start:dev": "cross-env NODE_ENV=development next dev",
     "lint": "next lint"
   },
   "dependencies": {
+    "cross-env": "^7.0.3",
     "@supabase/supabase-js": "^2.81.1",
     "@vercel/analytics": "^1.0.1",
     "bootstrap": "^5.3.1",
