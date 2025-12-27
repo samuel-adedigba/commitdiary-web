@@ -2,6 +2,7 @@
 
 import { Fragment, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Container,
   Row,
@@ -119,8 +120,8 @@ const Documentation = () => {
                                 Key.
                                 <br />
                                 <small className="text-muted">
-                                  Keep this key safe! You won't be able to see
-                                  it again.
+                                  Keep this key safe! You won&apos;t be able to
+                                  see it again.
                                 </small>
                               </p>
                             </div>
@@ -142,8 +143,8 @@ const Documentation = () => {
                                 </code>
                               </p>
                               <p className="mb-0 mt-2">
-                                Paste your key and hit Enter. You're ready to
-                                go!
+                                Paste your key and hit Enter. You&apos;re ready
+                                to go!
                               </p>
                             </div>
                           </div>
@@ -165,7 +166,8 @@ const Documentation = () => {
                         <h4 className="fw-bold mb-3">Creating a Share Link</h4>
                         <p>
                           Navigate to the <Link href="/shares">Shares</Link>{" "}
-                          page and click "Create Share". You can customize:
+                          page and click &quot;Create Share&quot;. You can
+                          customize:
                         </p>
                         <ul>
                           <li>
@@ -202,8 +204,8 @@ const Documentation = () => {
                       <div className="mb-4">
                         <h2 className="mb-1 fw-bold">GitHub Profile Badge</h2>
                         <p className="text-muted">
-                          Display your "Last Active" status and commit stats on
-                          your GitHub profile.
+                          Display your &quot;Last Active&quot; status and commit
+                          stats on your GitHub profile.
                         </p>
                       </div>
 
@@ -218,8 +220,8 @@ const Documentation = () => {
                           <h5 className="mt-3">How to add it:</h5>
                           <ol>
                             <li>
-                              Create a Share Link with "All Repos" and "Live
-                              Mode" enabled.
+                              Create a Share Link with &quot;All Repos&quot; and
+                              &quot;Live Mode&quot; enabled.
                             </li>
                             <li>Copy the markdown snippet below.</li>
                             <li>
@@ -238,11 +240,14 @@ const Documentation = () => {
                               Preview
                             </p>
                             {/* Placeholder for visual representation */}
-                            <img
+                            <Image
                               src="https://img.shields.io/badge/CommitDiary-Stats_Loading...-blue?style=for-the-badge&logo=git"
                               alt="Badge Preview"
                               className="img-fluid"
-                              style={{ height: "30px" }}
+                              style={{ height: "30px", width: "auto" }}
+                              width={200}
+                              height={30}
+                              unoptimized
                             />
                             <p className="mt-3 small text-muted">
                               (Actual badge effectively replaces this with your
