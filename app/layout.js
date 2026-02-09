@@ -7,6 +7,7 @@ export const metadata = {
   description:
     "Commit Diary is a professional dashboard for tracking, categorizing, and visualizing your git commit history.",
   keywords: "commit-diary, git-analytics, developer-tools, commit-tracker",
+  metadataBase: new URL("https://commitdiary-web.vercel.app"),
   icons: {
     icon: "/images/logo.png",
     shortcut: "/images/logo.png",

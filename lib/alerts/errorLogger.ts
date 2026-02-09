@@ -131,7 +131,7 @@ export function logReactError(error: Error, errorInfo: { componentStack: string 
     });
 }
 
-export default {
+const errorLogger = {
     logError,
     logApiError,
     logAuthError,
@@ -139,3 +139,5 @@ export default {
     setupGlobalErrorHandlers,
     logReactError,
 };
+
+export default errorLogger;
