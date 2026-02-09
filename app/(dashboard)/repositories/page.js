@@ -104,6 +104,31 @@ const RepositoriesPage = () => {
             }
           }
         } catch (err) {
+          console.error(`Error polling backfill status for repo ${repoId}:`, err);
+          // Stop polling if we get repeated errors (likely API issues)
+          // This prevents infinite polling when the backend is having problems
+          setPollingRepos((prev) => {
+            const next = new Set(prev);
+            next.delete(repoId);
+            return next;
+          });
+          
+          // Update the repo to show an error state
+          setRepositories((prev) =>
+            prev.map((repo) => {
+              if (String(repo.id) === repoId && repo.backfill?.status === "processing") {
+                return {
+                  ...repo,
+                  backfill: {
+                    ...repo.backfill,
+                    status: "failed",
+                    errorMessage: "Failed to check backfill status due to API error"
+                  }
+                };
+              }
+              return repo;
+            }),
+          );
         }
       }
     }, 5000); // Poll every 5 seconds
@@ -132,8 +157,10 @@ const RepositoriesPage = () => {
               : repo,
           ),
         );
-        // Start polling for this repo
-        setPollingRepos((prev) => new Set([...prev, repoIdStr]));
+        // Start polling for this repo only if backfill is in processing state
+        if (result.backfill?.status === "processing") {
+          setPollingRepos((prev) => new Set([...prev, repoIdStr]));
+        }
       } else {
         // Direct enable (no backfill needed) or disable
         setRepositories((prev) =>
@@ -145,6 +172,15 @@ const RepositoriesPage = () => {
         );
       }
     } catch (error) {
+      console.error(`Failed to toggle reports for repo ${repoId}:`, error);
+      // Revert the optimistic update on error
+      setRepositories((prev) =>
+        prev.map((repo) =>
+          repo.id === repoId
+            ? { ...repo, enable_reports: currentEnabled }
+            : repo,
+        ),
+      );
     } finally {
       setTogglingRepos((prev) => {
         const next = new Set(prev);
@@ -167,9 +203,25 @@ const RepositoriesPage = () => {
         ),
       );
 
-      // Start polling for this repo
-      setPollingRepos((prev) => new Set([...prev, repoIdStr]));
+      // Start polling for this repo only if backfill is in processing state
+      if (result.backfill?.status === "processing") {
+        setPollingRepos((prev) => new Set([...prev, repoIdStr]));
+      }
     } catch (error) {
+      console.error(`Failed to retry backfill for repo ${repoId}:`, error);
+      // Show error state to user
+      setRepositories((prev) =>
+        prev.map((repo) =>
+          repo.id === repoId ? {
+            ...repo,
+            backfill: repo.backfill ? {
+              ...repo.backfill,
+              status: "failed",
+              errorMessage: "Failed to retry backfill. Please try again later."
+            } : null
+          } : repo,
+        ),
+      );
     } finally {
       setRetryingRepos((prev) => {
         const next = new Set(prev);
@@ -259,6 +311,11 @@ const RepositoriesPage = () => {
               )}
             </Button>
           </div>
+          {backfill.errorMessage && (
+            <small className="text-muted d-block mt-1">
+              {backfill.errorMessage}
+            </small>
+          )}
           <ProgressBar style={{ height: "6px" }} className="mt-1">
             <ProgressBar
               variant="success"
