@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { ComponentType } from "react";
 import {
   Card,
   Form,
@@ -37,6 +38,76 @@ import {
 } from "../../lib/apiClient";
 
 export default function WebhookSettings() {
+  const AlertTriangleIcon = FiAlertTriangle as ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean;
+    size?: number;
+  }>;
+  const BarChartIcon = FiBarChart2 as ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean;
+    size?: number;
+  }>;
+  const BellIcon = FiBell as ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean;
+    size?: number;
+  }>;
+  const BookOpenIcon = FiBookOpen as ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean;
+    size?: number;
+  }>;
+  const CheckIcon = FiCheck as ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean;
+    size?: number;
+  }>;
+  const CheckCircleIcon = FiCheckCircle as ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean;
+    size?: number;
+  }>;
+  const ChevronDownIcon = FiChevronDown as ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean;
+    size?: number;
+  }>;
+  const ChevronRightIcon = FiChevronRight as ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean;
+    size?: number;
+  }>;
+  const CopyIcon = FiCopy as ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean;
+    size?: number;
+  }>;
+  const EyeIcon = FiEye as ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean;
+    size?: number;
+  }>;
+  const EyeOffIcon = FiEyeOff as ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean;
+    size?: number;
+  }>;
+  const SendIcon = FiSend as ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean;
+    size?: number;
+  }>;
+  const TrashIcon = FiTrash2 as ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean;
+    size?: number;
+  }>;
+  const XIcon = FiX as ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean;
+    size?: number;
+  }>;
   const [settings, setSettings] = useState<WebhookSettingsType | null>(null);
   const [webhookUrl, setWebhookUrl] = useState("");
   const [enabled, setEnabled] = useState(true);
@@ -247,7 +318,7 @@ export default function WebhookSettings() {
     <Card className="border shadow-sm">
       <Card.Header className="bg-white">
         <h5 className="mb-0 d-flex align-items-center gap-2">
-          <FiBell aria-hidden="true" />
+          <BellIcon aria-hidden={true} />
           <span>Discord Webhook Notifications</span>
         </h5>
         <small className="text-muted">
@@ -257,14 +328,14 @@ export default function WebhookSettings() {
       <Card.Body>
         {error && (
           <Alert variant="danger" dismissible onClose={() => setError(null)}>
-            <FiAlertTriangle className="me-2" aria-hidden="true" />
+            <AlertTriangleIcon className="me-2" aria-hidden={true} />
             {error}
           </Alert>
         )}
 
         {success && (
           <Alert variant="success" dismissible onClose={() => setSuccess(null)}>
-            <FiCheckCircle className="me-2" aria-hidden="true" />
+            <CheckCircleIcon className="me-2" aria-hidden={true} />
             {success}
           </Alert>
         )}
@@ -276,12 +347,12 @@ export default function WebhookSettings() {
             onClick={() => setShowInstructions(!showInstructions)}
             className="p-0 text-decoration-none"
           >
-            <FiBookOpen className="me-2" aria-hidden="true" />
+            <BookOpenIcon className="me-2" aria-hidden={true} />
             How to get your Discord Webhook URL
             {showInstructions ? (
-              <FiChevronDown className="ms-2" aria-hidden="true" />
+              <ChevronDownIcon className="ms-2" aria-hidden={true} />
             ) : (
-              <FiChevronRight className="ms-2" aria-hidden="true" />
+              <ChevronRightIcon className="ms-2" aria-hidden={true} />
             )}
           </Button>
 
@@ -302,7 +373,9 @@ export default function WebhookSettings() {
                     Click <strong>New Webhook</strong> (or{" "}
                     <strong>Create Webhook</strong>)
                   </li>
-                  <li>Give it a name (e.g., &quot;CommitDiary Notifications&quot;)</li>
+                  <li>
+                    Give it a name (e.g., &quot;CommitDiary Notifications&quot;)
+                  </li>
                   <li>
                     Select the channel where you want to receive notifications
                   </li>
@@ -394,11 +467,11 @@ export default function WebhookSettings() {
               >
                 {showSecret ? (
                   <>
-                    <FiEyeOff className="me-1" aria-hidden="true" /> Hide
+                    <EyeOffIcon className="me-1" aria-hidden={true} /> Hide
                   </>
                 ) : (
                   <>
-                    <FiEye className="me-1" aria-hidden="true" /> Show
+                    <EyeIcon className="me-1" aria-hidden={true} /> Show
                   </>
                 )}
               </Button>
@@ -406,7 +479,7 @@ export default function WebhookSettings() {
                 variant="outline-primary"
                 onClick={() => copyToClipboard(settings.webhook_secret)}
               >
-                <FiCopy className="me-1" aria-hidden="true" /> Copy
+                <CopyIcon className="me-1" aria-hidden={true} /> Copy
               </Button>
             </div>
             <Form.Text className="text-muted">
@@ -484,13 +557,13 @@ export default function WebhookSettings() {
                   "Sending..."
                 ) : (
                   <>
-                    <FiSend className="me-2" aria-hidden="true" /> Send Test
+                    <SendIcon className="me-2" aria-hidden={true} /> Send Test
                   </>
                 )}
               </Button>
 
               <Button variant="outline-secondary" onClick={loadLogs}>
-                <FiBarChart2 className="me-2" aria-hidden="true" /> View
+                <BarChartIcon className="me-2" aria-hidden={true} /> View
                 Delivery Logs
               </Button>
 
@@ -499,7 +572,8 @@ export default function WebhookSettings() {
                 onClick={handleDelete}
                 disabled={loading}
               >
-                <FiTrash2 className="me-2" aria-hidden="true" /> Delete Settings
+                <TrashIcon className="me-2" aria-hidden={true} /> Delete
+                Settings
               </Button>
             </>
           )}
@@ -511,7 +585,7 @@ export default function WebhookSettings() {
             <Card.Header className="d-flex justify-content-between align-items-center">
               <span>Recent Deliveries</span>
               <Button variant="sm" size="sm" onClick={() => setShowLogs(false)}>
-                <FiX aria-hidden="true" />
+                <XIcon aria-hidden={true} />
               </Button>
             </Card.Header>
             <ListGroup
@@ -527,9 +601,9 @@ export default function WebhookSettings() {
                         className="me-2"
                       >
                         {log.success ? (
-                          <FiCheck size={12} aria-hidden="true" />
+                          <CheckIcon size={12} aria-hidden={true} />
                         ) : (
-                          <FiX size={12} aria-hidden="true" />
+                          <XIcon size={12} aria-hidden={true} />
                         )}
                       </Badge>
                       <strong>{log.event_type}</strong>
