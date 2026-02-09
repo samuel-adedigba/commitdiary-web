@@ -55,12 +55,8 @@ const CommitsDataTable = ({ commits, loading }) => {
                 pageIndex: 1,
                 pageSize: 10
             }}
-            onPaginationChange={(page) => {
-                console.log('Page changed to:', page)
-            }}
-            onSelectChange={(size) => {
-                console.log('Page size changed to:', size)
-            }}
+            onPaginationChange={() => {}}
+            onSelectChange={() => {}}
         />
     )
 }

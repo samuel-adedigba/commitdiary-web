@@ -40,8 +40,6 @@ export async function GET(request, { params }) {
       },
     });
   } catch (error) {
-    console.error("Badge generation error:", error);
-
     // Return a simple error SVG so it doesn't just show a broken image link
     const errorSvg = `
       <svg width="400" height="50" xmlns="http://www.w3.org/2000/svg">

@@ -1,20 +1,8 @@
 'use client'
 
-function logDebug(...args: any[]) {
-  if (process.env.NODE_ENV === 'development') {
-    // eslint-disable-next-line no-console
-    console.log(...args)
-  }
-}
-function logError(...args: any[]) {
-  if (process.env.NODE_ENV === 'development') {
-    // eslint-disable-next-line no-console
-    console.error(...args)
-  }
-}
-
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '/lib/supabaseClient'
+import { useAuth } from '/lib/auth-context'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 export interface CommitUpdate {
@@ -30,22 +18,23 @@ export function useRealtimeCommits(onUpdate?: (update: CommitUpdate) => void) {
   const [commits, setCommits] = useState<any[]>([])
   const [isConnected, setIsConnected] = useState(false)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+  const onUpdateRef = useRef(onUpdate)
+  
+  const { user } = useAuth()
+  const userId = user?.id
+  
+  // Keep callback ref up to date
+  useEffect(() => {
+    onUpdateRef.current = onUpdate
+  }, [onUpdate])
 
   useEffect(() => {
+    if (!userId) return // Wait for user ID
+    
     let channel: RealtimeChannel | null = null
 
     async function setupRealtimeSubscription() {
       try {
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser()
-        
-        if (!user) {
-          logDebug('[Realtime] No user authenticated, skipping subscription')
-          return
-        }
-
-        logDebug('[Realtime] Setting up subscription for user:', user.id)
-
         // Create channel for commits table
         channel = supabase
           .channel('commits-changes')
@@ -55,11 +44,9 @@ export function useRealtimeCommits(onUpdate?: (update: CommitUpdate) => void) {
               event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
               schema: 'public',
               table: 'commits',
-              filter: `user_id=eq.${user.id}` // Only subscribe to current user's commits
+              filter: `user_id=eq.${userId}` // Only subscribe to current user's commits
             },
             (payload) => {
-              logDebug('[Realtime] Commit change detected:', payload.eventType, payload.new)
-              
               const update: CommitUpdate = {
                 type: payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE',
                 commit: payload.new || payload.old
@@ -77,18 +64,16 @@ export function useRealtimeCommits(onUpdate?: (update: CommitUpdate) => void) {
               }
               
               // Call the callback if provided
-              if (onUpdate) {
-                onUpdate(update)
+              if (onUpdateRef.current) {
+                onUpdateRef.current(update)
               }
             }
           )
           .subscribe((status) => {
-            logDebug('[Realtime] Subscription status:', status)
             setIsConnected(status === 'SUBSCRIBED')
           })
 
       } catch (error) {
-        logError('[Realtime] Error setting up subscription:', error)
       }
     }
 
@@ -97,11 +82,10 @@ export function useRealtimeCommits(onUpdate?: (update: CommitUpdate) => void) {
     // Cleanup subscription on unmount
     return () => {
       if (channel) {
-        logDebug('[Realtime] Cleaning up subscription')
         supabase.removeChannel(channel)
       }
     }
-  }, [onUpdate])
+  }, [userId]) // Only depend on userId
 
   return { commits, isConnected, lastUpdate }
 }

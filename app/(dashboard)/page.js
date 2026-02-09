@@ -4,6 +4,7 @@ import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { Container, Col, Row } from "react-bootstrap";
 import { GitCommit, GitBranch, Layers, TrendingUp } from "react-feather";
+import { FiWifi, FiWifiOff } from "react-icons/fi";
 
 // import widget/custom components
 import {
@@ -49,10 +50,6 @@ const Home = () => {
         Array.isArray(commitsResponse?.commits) ? commitsResponse.commits : []
       );
     } catch (error) {
-      if (process.env.NODE_ENV === "development") {
-        // eslint-disable-next-line no-console
-        console.error("Failed to fetch dashboard data:", error);
-      }
     } finally {
       setLoading(false);
     }
@@ -136,8 +133,18 @@ const Home = () => {
             <div className="d-flex justify-content-between align-items-center mb-2">
               <div>
                 <h3 className="mb-0 text-white">CommitDiary Dashboard</h3>
-                <p className="mb-0 text-white-50">
-                  {isConnected ? "🟢 Live Updates" : "🔴 Offline"}
+                <p className="mb-0 text-white-50 d-flex align-items-center gap-2">
+                  {isConnected ? (
+                    <>
+                      <FiWifi aria-hidden="true" />
+                      Live Updates
+                    </>
+                  ) : (
+                    <>
+                      <FiWifiOff aria-hidden="true" />
+                      Offline
+                    </>
+                  )}
                 </p>
               </div>
               <Link href="/commits" className="btn btn-white">

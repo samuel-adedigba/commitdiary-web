@@ -37,3 +37,17 @@ Thumbs.db
 
 # Vercel
 .vercel
+
+# Private/local docs
+README.local.md
+README.private.md
+README.internal.md
+*.local.md
+*_private.md
+*_internal.md
+
+# Internal docs
+AUTH_DEBUGGING.md
+SECURITY_AUDIT.md
+SECURITY_IMPLEMENTATION.md
+DATATABLE_INTEGRATION.md

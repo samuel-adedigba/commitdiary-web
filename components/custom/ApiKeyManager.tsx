@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { fetchApiKeys, generateApiKey, revokeApiKey, type ApiKey } from "/lib/apiClient";
+import { FiAlertTriangle } from "react-icons/fi";
+import {
+  fetchApiKeys,
+  generateApiKey,
+  revokeApiKey,
+  type ApiKey,
+} from "/lib/apiClient";
 
 export default function ApiKeyManager() {
   const [keys, setKeys] = useState<ApiKey[]>([]);
@@ -17,7 +23,6 @@ export default function ApiKeyManager() {
         const existingKeys = await fetchApiKeys();
         setKeys(existingKeys);
       } catch (err) {
-        console.error('Failed to load API keys:', err);
         // Don't show error for initial fetch - user might not be authenticated yet
       }
     }
@@ -39,7 +44,7 @@ export default function ApiKeyManager() {
       setNewKeyName("");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to generate API key"
+        err instanceof Error ? err.message : "Failed to generate API key",
       );
     } finally {
       setLoading(false);
@@ -49,7 +54,7 @@ export default function ApiKeyManager() {
   async function handleRevokeKey(keyId: string) {
     if (
       !confirm(
-        "Are you sure you want to revoke this API key? This action cannot be undone."
+        "Are you sure you want to revoke this API key? This action cannot be undone.",
       )
     ) {
       return;
@@ -61,8 +66,8 @@ export default function ApiKeyManager() {
       await revokeApiKey(keyId);
       setKeys((prev) =>
         prev.map((k) =>
-          k.id === keyId ? { ...k, revoked_at: new Date().toISOString() } : k
-        )
+          k.id === keyId ? { ...k, revoked_at: new Date().toISOString() } : k,
+        ),
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to revoke API key");
@@ -88,8 +93,9 @@ export default function ApiKeyManager() {
       {/* Generated Key Modal */}
       {generatedKey && (
         <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-yellow-900 mb-2">
-            ⚠️ Save Your API Key
+          <h3 className="text-lg font-semibold text-yellow-900 mb-2 flex items-center gap-2">
+            <FiAlertTriangle aria-hidden="true" />
+            Save Your API Key
           </h3>
           <p className="text-sm text-yellow-800 mb-4">
             This is the only time you will see this key. Copy it now and store

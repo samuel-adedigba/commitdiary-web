@@ -1,7 +1,26 @@
 "use client";
-import { Fragment, useEffect, useState, useMemo } from "react";
-import { Container, Col, Row, Card, Badge, Button } from "react-bootstrap";
-import { GitBranch, RefreshCw, Calendar } from "react-feather";
+import { Fragment, useEffect, useState, useMemo, useCallback } from "react";
+import {
+  Container,
+  Col,
+  Row,
+  Card,
+  Badge,
+  Button,
+  Form,
+  ProgressBar,
+  Spinner,
+  Alert,
+} from "react-bootstrap";
+import {
+  GitBranch,
+  RefreshCw,
+  Calendar,
+  Zap,
+  AlertCircle,
+  CheckCircle,
+  RotateCw,
+} from "react-feather";
 import { apiClient } from "/lib/apiClient";
 import { DataTable } from "components/DataTable";
 
@@ -10,6 +29,9 @@ const RepositoriesPage = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [togglingRepos, setTogglingRepos] = useState(new Set()); // Track which repos are being toggled
+  const [retryingRepos, setRetryingRepos] = useState(new Set()); // Track repos being retried
+  const [pollingRepos, setPollingRepos] = useState(new Set()); // Track repos being polled for backfill
 
   useEffect(() => {
     fetchRepositories();
@@ -18,15 +40,142 @@ const RepositoriesPage = () => {
   const fetchRepositories = async () => {
     try {
       setLoading(true);
-      const data = await apiClient.getRepositories();
-      setRepositories(data);
+      // Use the endpoint that includes enable_reports and backfill status
+      const data = await apiClient.getReposWithReportSettings();
+
+      setRepositories(data.repos || data);
+
+      // Start polling for any repos with active backfills
+      const activeBackfills = (data.repos || []).filter(
+        (r) => r.backfill?.status === "processing",
+      );
+      if (activeBackfills.length > 0) {
+        setPollingRepos(new Set(activeBackfills.map((r) => String(r.id))));
+      }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error("Failed to fetch repositories:", error);
+      // Fallback to regular getRepositories if new endpoint fails
+      try {
+        const fallbackData = await apiClient.getRepositories();
+
+        setRepositories(
+          fallbackData.map((r) => ({
+            ...r,
+            enable_reports: false,
+            backfill: null,
+          })),
+        );
+      } catch (fallbackError) {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Poll for backfill progress on repos with active backfills
+  useEffect(() => {
+    if (pollingRepos.size === 0) return;
+
+    const interval = setInterval(async () => {
+      for (const repoId of pollingRepos) {
+        try {
+          const data = await apiClient.getBackfillStatus(repoId);
+          if (data.backfill) {
+            setRepositories((prev) =>
+              prev.map((repo) => {
+                if (String(repo.id) === repoId) {
+                  const isNowComplete = data.backfill.status === "completed";
+                  return {
+                    ...repo,
+                    backfill: data.backfill,
+                    enable_reports: isNowComplete ? true : repo.enable_reports,
+                  };
+                }
+                return repo;
+              }),
+            );
+
+            // Stop polling if backfill is done
+            if (data.backfill.status !== "processing") {
+              setPollingRepos((prev) => {
+                const next = new Set(prev);
+                next.delete(repoId);
+                return next;
+              });
+            }
+          }
+        } catch (err) {
+        }
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [pollingRepos]);
+
+  const handleToggleReports = async (repoId, currentEnabled) => {
+    const repoIdStr = String(repoId);
+
+    // Optimistic update for disable, show loading for enable
+    setTogglingRepos((prev) => new Set([...prev, repoIdStr]));
+
+    try {
+      const result = await apiClient.toggleRepoReports(
+        repoIdStr,
+        !currentEnabled,
+      );
+
+      if (!currentEnabled && result.backfill) {
+        // Enabling with backfill - update repo with backfill status, don't mark enabled yet
+        setRepositories((prev) =>
+          prev.map((repo) =>
+            repo.id === repoId
+              ? { ...repo, backfill: result.backfill, enable_reports: false }
+              : repo,
+          ),
+        );
+        // Start polling for this repo
+        setPollingRepos((prev) => new Set([...prev, repoIdStr]));
+      } else {
+        // Direct enable (no backfill needed) or disable
+        setRepositories((prev) =>
+          prev.map((repo) =>
+            repo.id === repoId
+              ? { ...repo, enable_reports: result.enabled, backfill: null }
+              : repo,
+          ),
+        );
+      }
+    } catch (error) {
+    } finally {
+      setTogglingRepos((prev) => {
+        const next = new Set(prev);
+        next.delete(repoIdStr);
+        return next;
+      });
+    }
+  };
+
+  const handleRetryBackfill = async (repoId) => {
+    const repoIdStr = String(repoId);
+    setRetryingRepos((prev) => new Set([...prev, repoIdStr]));
+
+    try {
+      const result = await apiClient.retryBackfill(repoIdStr);
+
+      setRepositories((prev) =>
+        prev.map((repo) =>
+          repo.id === repoId ? { ...repo, backfill: result.backfill } : repo,
+        ),
+      );
+
+      // Start polling for this repo
+      setPollingRepos((prev) => new Set([...prev, repoIdStr]));
+    } catch (error) {
+    } finally {
+      setRetryingRepos((prev) => {
+        const next = new Set(prev);
+        next.delete(repoIdStr);
+        return next;
+      });
     }
   };
 
@@ -40,6 +189,95 @@ const RepositoriesPage = () => {
     });
   };
 
+  const renderBackfillStatus = useCallback((repo) => {
+    const backfill = repo.backfill;
+    if (!backfill) return null;
+
+    const { status, totalCommits, completedCommits, failedCommits } = backfill;
+    const progress =
+      totalCommits > 0
+        ? Math.round((completedCommits / totalCommits) * 100)
+        : 0;
+
+    if (status === "processing") {
+      return (
+        <div className="mt-2">
+          <div className="d-flex align-items-center gap-2 mb-1">
+            <Spinner animation="border" size="sm" variant="primary" />
+            <small className="text-primary fw-medium">
+              Generating reports: {completedCommits}/{totalCommits}
+            </small>
+          </div>
+          <ProgressBar
+            now={progress}
+            variant="primary"
+            animated
+            style={{ height: "6px" }}
+          />
+        </div>
+      );
+    }
+
+    if (status === "completed") {
+      return (
+        <div className="mt-1">
+          <small className="text-success d-flex align-items-center gap-1">
+            <CheckCircle size={12} />
+            All {totalCommits} reports generated
+          </small>
+        </div>
+      );
+    }
+
+    if (status === "failed" || status === "partial") {
+      const isRetrying = retryingRepos.has(String(repo.id));
+      return (
+        <div className="mt-2">
+          <div className="d-flex align-items-center justify-content-between">
+            <small className="text-danger d-flex align-items-center gap-1">
+              <AlertCircle size={12} />
+              {failedCommits} of {totalCommits} failed
+            </small>
+            <Button
+              variant="outline-warning"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRetryBackfill(repo.id);
+              }}
+              disabled={isRetrying}
+              className="py-0 px-2"
+              style={{ fontSize: "0.75rem" }}
+            >
+              {isRetrying ? (
+                <Spinner animation="border" size="sm" />
+              ) : (
+                <>
+                  <RotateCw size={10} className="me-1" />
+                  Retry
+                </>
+              )}
+            </Button>
+          </div>
+          <ProgressBar style={{ height: "6px" }} className="mt-1">
+            <ProgressBar
+              variant="success"
+              now={(completedCommits / totalCommits) * 100}
+              key={1}
+            />
+            <ProgressBar
+              variant="danger"
+              now={(failedCommits / totalCommits) * 100}
+              key={2}
+            />
+          </ProgressBar>
+        </div>
+      );
+    }
+
+    return null;
+  }, [retryingRepos]);
+
   // DataTable columns definition
   const columns = useMemo(
     () => [
@@ -47,79 +285,104 @@ const RepositoriesPage = () => {
         header: "Repository",
         accessorKey: "name",
         cell: ({ row }) => (
-          <div className="d-flex align-items-center">
-            <GitBranch size={18} className="text-primary me-2" />
-            <div>
+          <div className="d-flex align-items-start">
+            <GitBranch size={18} className="text-primary me-2 mt-1" />
+            <div style={{ flex: 1 }}>
               <div className="fw-semibold">{row.original.name}</div>
               {row.original.description && (
                 <small className="text-muted">{row.original.description}</small>
               )}
+              {renderBackfillStatus(row.original)}
             </div>
           </div>
         ),
       },
       {
-        header: "Branch",
-        accessorKey: "branch",
-        cell: ({ row }) =>
-          row.original.branch ? (
-            <Badge bg="light" text="dark">
-              {row.original.branch}
-            </Badge>
-          ) : (
-            <span className="text-muted">-</span>
-          ),
-      },
-      {
         header: "Remote",
-        accessorKey: "remote_url",
-        cell: ({ row }) =>
-          row.original.remote_url ? (
-            <Badge bg="secondary">
-              {new URL(row.original.remote_url).hostname}
-            </Badge>
-          ) : (
-            <span className="text-muted">Local</span>
-          ),
+        accessorKey: "remote",
+        cell: ({ row }) => {
+          try {
+            return row.original.remote ? (
+              <Badge bg="secondary">
+                {new URL(row.original.remote).hostname}
+              </Badge>
+            ) : (
+              <span className="text-muted">Local</span>
+            );
+          } catch {
+            return <span className="text-muted">Local</span>;
+          }
+        },
       },
       {
-        header: "Commits",
-        accessorKey: "commit_count",
-        cell: ({ row }) => (
-          <strong className="text-primary">
-            {row.original.commit_count || 0}
-          </strong>
-        ),
-      },
-      {
-        header: "Last Sync",
-        accessorKey: "last_sync_at",
+        header: "Last Updated",
+        accessorKey: "updated_at",
         cell: ({ row }) => (
           <div className="d-flex align-items-center gap-2">
             <Calendar size={14} className="text-muted" />
             <small className="text-muted">
-              {formatDate(row.original.last_sync_at || row.original.updated_at)}
+              {formatDate(row.original.updated_at)}
             </small>
           </div>
         ),
       },
       {
-        header: "Path",
-        accessorKey: "path",
-        cell: ({ row }) =>
-          row.original.path ? (
-            <small
-              className="text-muted font-monospace text-truncate d-block"
-              style={{ maxWidth: "250px" }}
-            >
-              {row.original.path}
-            </small>
-          ) : (
-            <span className="text-muted">-</span>
-          ),
+        header: "Auto Reports",
+        accessorKey: "enable_reports",
+        cell: ({ row }) => {
+          const isToggling = togglingRepos.has(String(row.original.id));
+          const isBackfilling = row.original.backfill?.status === "processing";
+          const hasFailedBackfill =
+            row.original.backfill?.status === "failed" ||
+            row.original.backfill?.status === "partial";
+          return (
+            <div className="d-flex align-items-center gap-2">
+              <Form.Check
+                type="switch"
+                id={`report-toggle-${row.original.id}`}
+                checked={row.original.enable_reports || isBackfilling}
+                onChange={() =>
+                  handleToggleReports(
+                    row.original.id,
+                    row.original.enable_reports || isBackfilling,
+                  )
+                }
+                disabled={isToggling || isBackfilling}
+                className="m-0"
+              />
+              {isBackfilling && (
+                <Badge
+                  bg="warning"
+                  text="dark"
+                  className="d-flex align-items-center gap-1"
+                >
+                  <Spinner
+                    animation="border"
+                    size="sm"
+                    style={{ width: "10px", height: "10px" }}
+                  />
+                  Setting up
+                </Badge>
+              )}
+              {row.original.enable_reports && !isBackfilling && (
+                <Badge bg="success" className="d-flex align-items-center gap-1">
+                  <Zap size={10} />
+                  AI
+                </Badge>
+              )}
+              {hasFailedBackfill && !row.original.enable_reports && (
+                <Badge bg="danger" className="d-flex align-items-center gap-1">
+                  <AlertCircle size={10} />
+                  Setup Failed
+                </Badge>
+              )}
+            </div>
+          );
+        },
       },
     ],
-    []
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [togglingRepos, retryingRepos, pollingRepos, renderBackfillStatus],
   );
 
   return (

@@ -52,10 +52,6 @@ const SharesPage = () => {
       const data = await apiClient.getShares();
       setShares(data.shares || []);
     } catch (error) {
-      if (process.env.NODE_ENV === "development") {
-        // eslint-disable-next-line no-console
-        console.error("Failed to fetch shares:", error);
-      }
       setError("Failed to load shares");
     } finally {
       setLoading(false);
@@ -66,12 +62,7 @@ const SharesPage = () => {
     try {
       const data = await apiClient.getRepositories();
       setRepositories(data || []);
-      console.log("repo", data);
     } catch (error) {
-      if (process.env.NODE_ENV === "development") {
-        // eslint-disable-next-line no-console
-        console.error("Failed to fetch repositories:", error);
-      }
     }
   };
 
@@ -122,10 +113,6 @@ const SharesPage = () => {
         setSuccess("");
       }, 2000);
     } catch (error) {
-      if (process.env.NODE_ENV === "development") {
-        // eslint-disable-next-line no-console
-        console.error("Failed to create share:", error);
-      }
       setError(error.message || "Failed to create share");
     } finally {
       setCreateLoading(false);
@@ -153,10 +140,6 @@ const SharesPage = () => {
       await fetchShares();
       setTimeout(() => setSuccess(""), 2000);
     } catch (error) {
-      if (process.env.NODE_ENV === "development") {
-        // eslint-disable-next-line no-console
-        console.error("Failed to revoke share:", error);
-      }
       setError("Failed to revoke share");
     }
   };
@@ -173,10 +156,6 @@ const SharesPage = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      if (process.env.NODE_ENV === "development") {
-        // eslint-disable-next-line no-console
-        console.error("Failed to export share:", error);
-      }
       setError("Failed to export share");
     }
   };

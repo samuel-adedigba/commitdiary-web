@@ -1,9 +1,3 @@
-function logDebug(...args: any[]) {
-    if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.log(...args)
-    }
-}
 import React from 'react'
 import { Pagination as BSPagination } from 'react-bootstrap'
 
@@ -25,8 +19,6 @@ const Pagination = (props: PaginationProps) => {
     } = props
 
     const totalPages = Math.ceil(total / pageSize)
-
-    logDebug('[Pagination] total:', total, 'pageSize:', pageSize, 'totalPages:', totalPages, 'currentPage:', currentPage)
 
     // Show pagination if there are any items
     if (total === 0) return null

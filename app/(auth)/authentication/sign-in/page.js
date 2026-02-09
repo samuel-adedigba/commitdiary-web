@@ -40,11 +40,14 @@ const SignIn = () => {
       });
 
       if (error) throw error;
-
-      router.push("/");
+      
+      // Give the auth state time to propagate
+      setTimeout(() => {
+        router.push("/");
+      }, 500);
+      
     } catch (err) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   };

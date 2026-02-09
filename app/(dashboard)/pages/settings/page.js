@@ -10,6 +10,7 @@ import { DeleteAccount, GeneralSetting } from 'sub-components'
 
 // import custom components
 import ApiKeyManager from '/components/custom/ApiKeyManager';
+import WebhookSettings from '/sub-components/settings/WebhookSettings';
 
 const Settings = () => {
   return (
@@ -29,6 +30,17 @@ const Settings = () => {
         </Col>
         <Col lg={9} md={8} sm={12}>
           <ApiKeyManager />
+        </Col>
+      </Row>
+
+      {/* Discord Webhook Settings */}
+      <Row className="mb-8">
+        <Col lg={3} md={4} sm={12}>
+          <h4>Discord Notifications</h4>
+          <p className="mb-0">Configure Discord webhooks to receive real-time commit report notifications</p>
+        </Col>
+        <Col lg={9} md={8} sm={12}>
+          <WebhookSettings />
         </Col>
       </Row>
 

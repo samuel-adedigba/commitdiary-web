@@ -1,13 +1,5 @@
 "use client";
 
-const LOG_LEVEL = process.env.LOG_LEVEL || "error";
-function logDebug(...args) {
-  if (LOG_LEVEL === "debug") console.log(...args);
-}
-function logError(...args) {
-  if (LOG_LEVEL === "debug" || LOG_LEVEL === "error") console.error(...args);
-}
-
 import { Fragment, useEffect, useState, useMemo } from "react";
 import {
   Container,
@@ -18,11 +10,22 @@ import {
   Button,
   Form,
   InputGroup,
+  Dropdown,
 } from "react-bootstrap";
-import { Search, Calendar, Filter } from "react-feather";
+import {
+  Search,
+  Calendar,
+  Filter,
+  FileText,
+  MoreVertical,
+  Zap,
+  Edit3,
+} from "react-feather";
+import { FiWifi, FiWifiOff } from "react-icons/fi";
 import { apiClient } from "/lib/apiClient";
 import { useRealtimeCommits } from "/hooks/useRealtimeCommits";
 import { DataTable } from "components/DataTable";
+import ReportModal from "components/ReportModal";
 
 const CommitsPage = () => {
   const [commits, setCommits] = useState([]);
@@ -35,6 +38,10 @@ const CommitsPage = () => {
   const [customEndDate, setCustomEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  // Report modal state
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [selectedCommit, setSelectedCommit] = useState(null);
 
   // Real-time subscription
   const { commits: realtimeCommits, isConnected } = useRealtimeCommits();
@@ -67,16 +74,10 @@ const CommitsPage = () => {
       }
 
       const response = await apiClient.getCommits(params);
-      logDebug("[Commits Page] Fetched commits:", response);
-      logDebug("[Commits Page] Total commits:", response.total);
-      logDebug("[Commits Page] Commits length:", response.commits?.length);
-
       setCommits(response.commits || []);
       const total = response.total || response.commits?.length || 0;
-      logDebug("[Commits Page] Setting totalCommits to:", total);
       setTotalCommits(total);
     } catch (error) {
-      logError("Failed to fetch commits:", error);
       setCommits([]);
       setTotalCommits(0);
     } finally {
@@ -105,7 +106,7 @@ const CommitsPage = () => {
       setCommits((prevCommits) => {
         const existingIds = new Set(prevCommits.map((c) => c.id));
         const newCommits = realtimeCommits.filter(
-          (c) => !existingIds.has(c.id)
+          (c) => !existingIds.has(c.id),
         );
         if (newCommits.length > 0) {
           setTotalCommits((prev) => prev + newCommits.length);
@@ -176,6 +177,60 @@ const CommitsPage = () => {
         ),
       },
       {
+        header: "Report",
+        accessorKey: "report_status",
+        cell: ({ row }) => {
+          const { has_report, report_generation_type } = row.original;
+          if (has_report) {
+            if (report_generation_type === "auto") {
+              return (
+                <Badge
+                  bg="success"
+                  className="d-flex align-items-center gap-1"
+                  style={{ width: "fit-content" }}
+                >
+                  <Zap size={10} />
+                  Auto
+                </Badge>
+              );
+            } else if (report_generation_type === "backfill") {
+              return (
+                <Badge
+                  bg="info"
+                  className="d-flex align-items-center gap-1"
+                  style={{ width: "fit-content" }}
+                >
+                  <Zap size={10} />
+                  Backfill
+                </Badge>
+              );
+            } else {
+              return (
+                <Badge
+                  bg="primary"
+                  className="d-flex align-items-center gap-1"
+                  style={{ width: "fit-content" }}
+                >
+                  <Edit3 size={10} />
+                  Manual
+                </Badge>
+              );
+            }
+          }
+          return (
+            <Badge
+              bg="light"
+              text="dark"
+              className="d-flex align-items-center gap-1"
+              style={{ width: "fit-content" }}
+            >
+              <FileText size={10} />
+              No Report
+            </Badge>
+          );
+        },
+      },
+      {
         header: "Files",
         accessorKey: "files_changed",
         cell: ({ row }) => (
@@ -184,20 +239,6 @@ const CommitsPage = () => {
           </span>
         ),
       },
-      // {
-      //   header: "Impact",
-      //   accessorKey: "additions",
-      //   cell: ({ row }) => (
-      //     <div className="d-flex align-items-center gap-2">
-      //       <small className="text-success">
-      //         +{row.original.additions || 0}
-      //       </small>
-      //       <small className="text-danger">
-      //         -{row.original.deletions || 0}
-      //       </small>
-      //     </div>
-      //   ),
-      // },
       {
         header: "Committed At",
         accessorKey: "committed_at",
@@ -208,17 +249,35 @@ const CommitsPage = () => {
         ),
       },
       {
-        header: "Synced At",
-        accessorKey: "synced_at",
+        header: "Actions",
+        accessorKey: "actions",
         cell: ({ row }) => (
-          <small className="text-muted">
-            {formatDate(row.original.synced_at || row.original.created_at)}
-          </small>
+          <Dropdown>
+            <Dropdown.Toggle
+              variant="link"
+              className="p-0 text-muted"
+              id={`dropdown-${row.original.id}`}
+            >
+              <MoreVertical size={16} />
+            </Dropdown.Toggle>
+            <Dropdown.Menu>
+              <Dropdown.Item onClick={() => handleViewReport(row.original)}>
+                <FileText size={14} className="me-2" />
+                {row.original.has_report ? "View Report" : "Generate Report"}
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
         ),
       },
     ],
-    []
+    [],
   );
+
+  // Handle view report
+  const handleViewReport = (commit) => {
+    setSelectedCommit(commit);
+    setShowReportModal(true);
+  };
 
   return (
     <Fragment>
@@ -229,9 +288,20 @@ const CommitsPage = () => {
             <div className="d-flex justify-content-between align-items-center mb-4">
               <div>
                 <h3 className="mb-0 text-white">Commit History</h3>
-                <p className="mb-0 text-white-50">
-                  {isConnected ? "🟢 Live" : "🔴 Offline"} · {totalCommits}{" "}
-                  total commits
+                <p className="mb-0 text-white-50 d-flex align-items-center gap-2">
+                  {isConnected ? (
+                    <>
+                      <FiWifi aria-hidden="true" />
+                      Live
+                    </>
+                  ) : (
+                    <>
+                      <FiWifiOff aria-hidden="true" />
+                      Offline
+                    </>
+                  )}
+                  <span>·</span>
+                  <span>{totalCommits} total commits</span>
                 </p>
               </div>
               <div>
@@ -337,6 +407,16 @@ const CommitsPage = () => {
           </Col>
         </Row>
       </Container>
+
+      {/* Report Modal */}
+      <ReportModal
+        show={showReportModal}
+        onHide={() => {
+          setShowReportModal(false);
+          setSelectedCommit(null);
+        }}
+        commit={selectedCommit}
+      />
     </Fragment>
   );
 };
