@@ -99,7 +99,7 @@ export default function ApiKeyManager() {
       {generatedKey && (
         <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-yellow-900 mb-2 flex items-center gap-2">
-            <AlertTriangleIcon aria-hidden="true" />
+            <AlertTriangleIcon aria-hidden={true} />
             Save Your API Key
           </h3>
           <p className="text-sm text-yellow-800 mb-4">
