@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { ComponentType } from "react";
 import { FiAlertTriangle } from "react-icons/fi";
 import {
   fetchApiKeys,
@@ -10,6 +11,10 @@ import {
 } from "/lib/apiClient";
 
 export default function ApiKeyManager() {
+  const AlertTriangleIcon = FiAlertTriangle as ComponentType<{
+    className?: string;
+    "aria-hidden"?: boolean;
+  }>;
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [newKeyName, setNewKeyName] = useState("");
   const [generatedKey, setGeneratedKey] = useState<ApiKey | null>(null);
@@ -94,7 +99,7 @@ export default function ApiKeyManager() {
       {generatedKey && (
         <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-yellow-900 mb-2 flex items-center gap-2">
-            <FiAlertTriangle aria-hidden="true" />
+            <AlertTriangleIcon aria-hidden="true" />
             Save Your API Key
           </h3>
           <p className="text-sm text-yellow-800 mb-4">
