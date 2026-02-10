@@ -75,8 +75,44 @@ const RepositoriesPage = () => {
   useEffect(() => {
     if (pollingRepos.size === 0) return;
 
+    // Track polling attempts to prevent infinite polling
+    const pollingAttempts = new Map();
+    const MAX_POLLING_ATTEMPTS = 120; // 10 minutes max (120 * 5 seconds)
+
     const interval = setInterval(async () => {
       for (const repoId of pollingRepos) {
+        const attempts = pollingAttempts.get(repoId) || 0;
+        
+        // Stop polling after max attempts
+        if (attempts >= MAX_POLLING_ATTEMPTS) {
+          console.warn(`Max polling attempts reached for repo ${repoId}, stopping`);
+          setPollingRepos((prev) => {
+            const next = new Set(prev);
+            next.delete(repoId);
+            return next;
+          });
+          
+          // Update repo to show timeout state
+          setRepositories((prev) =>
+            prev.map((repo) => {
+              if (String(repo.id) === repoId && repo.backfill?.status === "processing") {
+                return {
+                  ...repo,
+                  backfill: {
+                    ...repo.backfill,
+                    status: "failed",
+                    errorMessage: "Backfill timed out after 10 minutes"
+                  }
+                };
+              }
+              return repo;
+            }),
+          );
+          continue;
+        }
+
+        pollingAttempts.set(repoId, attempts + 1);
+
         try {
           const data = await apiClient.getBackfillStatus(repoId);
           if (data.backfill) {
@@ -84,24 +120,34 @@ const RepositoriesPage = () => {
               prev.map((repo) => {
                 if (String(repo.id) === repoId) {
                   const isNowComplete = data.backfill.status === "completed";
+                  const isNowFailed = data.backfill.status === "failed" || data.backfill.status === "partial";
                   return {
                     ...repo,
                     backfill: data.backfill,
-                    enable_reports: isNowComplete ? true : repo.enable_reports,
+                    enable_reports: isNowComplete ? true : (isNowFailed ? false : repo.enable_reports),
                   };
                 }
                 return repo;
               }),
             );
 
-            // Stop polling if backfill is done
+            // Stop polling if backfill is done (completed, failed, partial)
             if (data.backfill.status !== "processing") {
               setPollingRepos((prev) => {
                 const next = new Set(prev);
                 next.delete(repoId);
                 return next;
               });
+              pollingAttempts.delete(repoId);
             }
+          } else {
+            // No backfill data - might be completed and cleaned up
+            setPollingRepos((prev) => {
+              const next = new Set(prev);
+              next.delete(repoId);
+              return next;
+            });
+            pollingAttempts.delete(repoId);
           }
         } catch (err) {
           console.error(`Error polling backfill status for repo ${repoId}:`, err);
@@ -112,6 +158,7 @@ const RepositoriesPage = () => {
             next.delete(repoId);
             return next;
           });
+          pollingAttempts.delete(repoId);
           
           // Update the repo to show an error state
           setRepositories((prev) =>
@@ -123,7 +170,8 @@ const RepositoriesPage = () => {
                     ...repo.backfill,
                     status: "failed",
                     errorMessage: "Failed to check backfill status due to API error"
-                  }
+                  },
+                  enable_reports: false, // Revert toggle on failure
                 };
               }
               return repo;
@@ -160,6 +208,15 @@ const RepositoriesPage = () => {
         // Start polling for this repo only if backfill is in processing state
         if (result.backfill?.status === "processing") {
           setPollingRepos((prev) => new Set([...prev, repoIdStr]));
+        } else if (result.backfill?.status === "failed") {
+          // Backfill failed immediately - revert toggle to false
+          setRepositories((prev) =>
+            prev.map((repo) =>
+              repo.id === repoId
+                ? { ...repo, enable_reports: false, backfill: null }
+                : repo,
+            ),
+          );
         }
       } else {
         // Direct enable (no backfill needed) or disable
@@ -252,20 +309,26 @@ const RepositoriesPage = () => {
         : 0;
 
     if (status === "processing") {
+      const isPolling = pollingRepos.has(String(repo.id));
       return (
         <div className="mt-2">
           <div className="d-flex align-items-center gap-2 mb-1">
             <Spinner animation="border" size="sm" variant="primary" />
             <small className="text-primary fw-medium">
-              Generating reports: {completedCommits}/{totalCommits}
+              {isPolling ? "Generating reports:" : "Setting up:"} {completedCommits}/{totalCommits}
             </small>
           </div>
           <ProgressBar
             now={progress}
             variant="primary"
-            animated
+            animated={isPolling}
             style={{ height: "6px" }}
           />
+          {!isPolling && (
+            <small className="text-muted d-block mt-1">
+              Waiting to start processing...
+            </small>
+          )}
         </div>
       );
     }
@@ -333,7 +396,7 @@ const RepositoriesPage = () => {
     }
 
     return null;
-  }, [retryingRepos]);
+  }, [retryingRepos, pollingRepos]);
 
   // DataTable columns definition
   const columns = useMemo(
