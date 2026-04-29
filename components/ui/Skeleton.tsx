@@ -6,6 +6,8 @@ export interface SkeletonProps extends React.ComponentPropsWithoutRef<'div'> {
     width?: string | number
     height?: string | number
     animation?: 'pulse' | 'wave' | false
+    className?: string
+    style?: React.CSSProperties
 }
 
 const Skeleton = (props: SkeletonProps) => {

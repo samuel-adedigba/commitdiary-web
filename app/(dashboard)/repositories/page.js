@@ -1,5 +1,11 @@
 "use client";
-import { Fragment, useEffect, useState, useMemo, useCallback } from "react";
+import {
+  Fragment,
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+} from "react";
 import {
   Container,
   Col,
@@ -8,7 +14,6 @@ import {
   Badge,
   Button,
   Form,
-  ProgressBar,
   Spinner,
   Alert,
 } from "react-bootstrap";
@@ -18,10 +23,11 @@ import {
   Calendar,
   Zap,
   AlertCircle,
-  CheckCircle,
   RotateCw,
 } from "react-feather";
 import { apiClient } from "/lib/apiClient";
+import { useBackfillStatus } from "/hooks/useBackfillStatus";
+import BackfillProgress from "components/reports/BackfillProgress";
 import { DataTable } from "components/DataTable";
 
 const RepositoriesPage = () => {
@@ -32,12 +38,9 @@ const RepositoriesPage = () => {
   const [togglingRepos, setTogglingRepos] = useState(new Set()); // Track which repos are being toggled
   const [retryingRepos, setRetryingRepos] = useState(new Set()); // Track repos being retried
   const [pollingRepos, setPollingRepos] = useState(new Set()); // Track repos being polled for backfill
+  const [isRecovering, setIsRecovering] = useState(false); // Track global recovery state
 
-  useEffect(() => {
-    fetchRepositories();
-  }, []);
-
-  const fetchRepositories = async () => {
+  const fetchRepositories = useCallback(async () => {
     try {
       setLoading(true);
       // Use the endpoint that includes enable_reports and backfill status
@@ -47,7 +50,9 @@ const RepositoriesPage = () => {
 
       // Start polling for any repos with active backfills
       const activeBackfills = (data.repos || []).filter(
-        (r) => r.backfill?.status === "processing",
+        (r) =>
+          r.backfill?.status === "processing" ||
+          r.backfill?.status === "pending",
       );
       if (activeBackfills.length > 0) {
         setPollingRepos(new Set(activeBackfills.map((r) => String(r.id))));
@@ -64,130 +69,54 @@ const RepositoriesPage = () => {
             backfill: null,
           })),
         );
-      } catch (fallbackError) {
-      }
+      } catch (fallbackError) {}
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Poll for backfill progress on repos with active backfills
   useEffect(() => {
-    if (pollingRepos.size === 0) return;
+    fetchRepositories();
+  }, [fetchRepositories]);
 
-    // Track polling attempts to prevent infinite polling
-    const pollingAttempts = new Map();
-    const MAX_POLLING_ATTEMPTS = 120; // 10 minutes max (120 * 5 seconds)
+  const activePollingRepoIds = useMemo(
+    () => Array.from(pollingRepos),
+    [pollingRepos],
+  );
 
-    const interval = setInterval(async () => {
-      for (const repoId of pollingRepos) {
-        const attempts = pollingAttempts.get(repoId) || 0;
-        
-        // Stop polling after max attempts
-        if (attempts >= MAX_POLLING_ATTEMPTS) {
-          console.warn(`Max polling attempts reached for repo ${repoId}, stopping`);
-          setPollingRepos((prev) => {
-            const next = new Set(prev);
-            next.delete(repoId);
-            return next;
-          });
-          
-          // Update repo to show timeout state
-          setRepositories((prev) =>
-            prev.map((repo) => {
-              if (String(repo.id) === repoId && repo.backfill?.status === "processing") {
-                return {
-                  ...repo,
-                  backfill: {
-                    ...repo.backfill,
-                    status: "failed",
-                    errorMessage: "Backfill timed out after 10 minutes"
-                  }
-                };
+  useBackfillStatus({
+    repoIds: activePollingRepoIds,
+    enabled: activePollingRepoIds.length > 0,
+    onBackfillUpdate: (repoId, backfill) => {
+      setRepositories((prev) =>
+        prev.map((repo) =>
+          String(repo.id) === String(repoId)
+            ? {
+                ...repo,
+                backfill,
               }
-              return repo;
-            }),
-          );
-          continue;
-        }
-
-        pollingAttempts.set(repoId, attempts + 1);
-
-        try {
-          const data = await apiClient.getBackfillStatus(repoId);
-          if (data.backfill) {
-            setRepositories((prev) =>
-              prev.map((repo) => {
-                if (String(repo.id) === repoId) {
-                  const isNowComplete = data.backfill.status === "completed";
-                  const isNowFailed = data.backfill.status === "failed" || data.backfill.status === "partial";
-                  return {
-                    ...repo,
-                    backfill: data.backfill,
-                    enable_reports: isNowComplete ? true : (isNowFailed ? false : repo.enable_reports),
-                  };
-                }
-                return repo;
-              }),
-            );
-
-            // Stop polling if backfill is done (completed, failed, partial)
-            if (data.backfill.status !== "processing") {
-              setPollingRepos((prev) => {
-                const next = new Set(prev);
-                next.delete(repoId);
-                return next;
-              });
-              pollingAttempts.delete(repoId);
-            }
-          } else {
-            // No backfill data - might be completed and cleaned up
-            setPollingRepos((prev) => {
-              const next = new Set(prev);
-              next.delete(repoId);
-              return next;
-            });
-            pollingAttempts.delete(repoId);
-          }
-        } catch (err) {
-          console.error(`Error polling backfill status for repo ${repoId}:`, err);
-          // Stop polling if we get repeated errors (likely API issues)
-          // This prevents infinite polling when the backend is having problems
-          setPollingRepos((prev) => {
-            const next = new Set(prev);
-            next.delete(repoId);
-            return next;
-          });
-          pollingAttempts.delete(repoId);
-          
-          // Update the repo to show an error state
-          setRepositories((prev) =>
-            prev.map((repo) => {
-              if (String(repo.id) === repoId && repo.backfill?.status === "processing") {
-                return {
-                  ...repo,
-                  backfill: {
-                    ...repo.backfill,
-                    status: "failed",
-                    errorMessage: "Failed to check backfill status due to API error"
-                  },
-                  enable_reports: false, // Revert toggle on failure
-                };
-              }
-              return repo;
-            }),
-          );
-        }
-      }
-    }, 5000); // Poll every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [pollingRepos]);
+            : repo,
+        ),
+      );
+    },
+    onTerminalState: (repoId) => {
+      setPollingRepos((prev) => {
+        const next = new Set(prev);
+        next.delete(String(repoId));
+        return next;
+      });
+      fetchRepositories();
+    },
+  });
 
   const handleToggleReports = async (repoId, currentEnabled) => {
     const repoIdStr = String(repoId);
 
-    // Optimistic update for disable, show loading for enable
+    // Prevent multiple simultaneous toggles
+    if (togglingRepos.has(repoIdStr)) {
+      return;
+    }
+
     setTogglingRepos((prev) => new Set([...prev, repoIdStr]));
 
     try {
@@ -197,7 +126,7 @@ const RepositoriesPage = () => {
       );
 
       if (!currentEnabled && result.backfill) {
-        // Enabling with backfill - update repo with backfill status, don't mark enabled yet
+        // Enabling with backfill - update repo with backfill status
         setRepositories((prev) =>
           prev.map((repo) =>
             repo.id === repoId
@@ -205,18 +134,12 @@ const RepositoriesPage = () => {
               : repo,
           ),
         );
-        // Start polling for this repo only if backfill is in processing state
-        if (result.backfill?.status === "processing") {
+
+        if (
+          result.backfill?.status === "processing" ||
+          result.backfill?.status === "pending"
+        ) {
           setPollingRepos((prev) => new Set([...prev, repoIdStr]));
-        } else if (result.backfill?.status === "failed") {
-          // Backfill failed immediately - revert toggle to false
-          setRepositories((prev) =>
-            prev.map((repo) =>
-              repo.id === repoId
-                ? { ...repo, enable_reports: false, backfill: null }
-                : repo,
-            ),
-          );
         }
       } else {
         // Direct enable (no backfill needed) or disable
@@ -230,7 +153,7 @@ const RepositoriesPage = () => {
       }
     } catch (error) {
       console.error(`Failed to toggle reports for repo ${repoId}:`, error);
-      // Revert the optimistic update on error
+      // Revert to original state on error
       setRepositories((prev) =>
         prev.map((repo) =>
           repo.id === repoId
@@ -269,14 +192,19 @@ const RepositoriesPage = () => {
       // Show error state to user
       setRepositories((prev) =>
         prev.map((repo) =>
-          repo.id === repoId ? {
-            ...repo,
-            backfill: repo.backfill ? {
-              ...repo.backfill,
-              status: "failed",
-              errorMessage: "Failed to retry backfill. Please try again later."
-            } : null
-          } : repo,
+          repo.id === repoId
+            ? {
+                ...repo,
+                backfill: repo.backfill
+                  ? {
+                      ...repo.backfill,
+                      status: "failed",
+                      errorMessage:
+                        "Failed to retry backfill. Please try again later.",
+                    }
+                  : null,
+              }
+            : repo,
         ),
       );
     } finally {
@@ -285,6 +213,25 @@ const RepositoriesPage = () => {
         next.delete(repoIdStr);
         return next;
       });
+    }
+  };
+
+  const handleGlobalRecovery = async () => {
+    setIsRecovering(true);
+    try {
+      const result = await apiClient.recoverJobs();
+      console.log('Global recovery results:', result);
+      
+      // Show success message to user
+      alert(`Recovery completed: ${result.results.recovered} jobs recovered, ${result.results.failed} jobs failed`);
+      
+      // Refresh repositories to see updated status
+      await fetchRepositories();
+    } catch (error) {
+      console.error('Global recovery failed:', error);
+      alert(`Recovery failed: ${error.message}`);
+    } finally {
+      setIsRecovering(false);
     }
   };
 
@@ -298,105 +245,17 @@ const RepositoriesPage = () => {
     });
   };
 
-  const renderBackfillStatus = useCallback((repo) => {
-    const backfill = repo.backfill;
-    if (!backfill) return null;
-
-    const { status, totalCommits, completedCommits, failedCommits } = backfill;
-    const progress =
-      totalCommits > 0
-        ? Math.round((completedCommits / totalCommits) * 100)
-        : 0;
-
-    if (status === "processing") {
-      const isPolling = pollingRepos.has(String(repo.id));
-      return (
-        <div className="mt-2">
-          <div className="d-flex align-items-center gap-2 mb-1">
-            <Spinner animation="border" size="sm" variant="primary" />
-            <small className="text-primary fw-medium">
-              {isPolling ? "Generating reports:" : "Setting up:"} {completedCommits}/{totalCommits}
-            </small>
-          </div>
-          <ProgressBar
-            now={progress}
-            variant="primary"
-            animated={isPolling}
-            style={{ height: "6px" }}
-          />
-          {!isPolling && (
-            <small className="text-muted d-block mt-1">
-              Waiting to start processing...
-            </small>
-          )}
-        </div>
-      );
-    }
-
-    if (status === "completed") {
-      return (
-        <div className="mt-1">
-          <small className="text-success d-flex align-items-center gap-1">
-            <CheckCircle size={12} />
-            All {totalCommits} reports generated
-          </small>
-        </div>
-      );
-    }
-
-    if (status === "failed" || status === "partial") {
-      const isRetrying = retryingRepos.has(String(repo.id));
-      return (
-        <div className="mt-2">
-          <div className="d-flex align-items-center justify-content-between">
-            <small className="text-danger d-flex align-items-center gap-1">
-              <AlertCircle size={12} />
-              {failedCommits} of {totalCommits} failed
-            </small>
-            <Button
-              variant="outline-warning"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRetryBackfill(repo.id);
-              }}
-              disabled={isRetrying}
-              className="py-0 px-2"
-              style={{ fontSize: "0.75rem" }}
-            >
-              {isRetrying ? (
-                <Spinner animation="border" size="sm" />
-              ) : (
-                <>
-                  <RotateCw size={10} className="me-1" />
-                  Retry
-                </>
-              )}
-            </Button>
-          </div>
-          {backfill.errorMessage && (
-            <small className="text-muted d-block mt-1">
-              {backfill.errorMessage}
-            </small>
-          )}
-          <ProgressBar style={{ height: "6px" }} className="mt-1">
-            <ProgressBar
-              variant="success"
-              now={(completedCommits / totalCommits) * 100}
-              key={1}
-            />
-            <ProgressBar
-              variant="danger"
-              now={(failedCommits / totalCommits) * 100}
-              key={2}
-            />
-          </ProgressBar>
-        </div>
-      );
-    }
-
-    return null;
-  }, [retryingRepos, pollingRepos]);
+  const renderBackfillStatus = useCallback(
+    (repo) => (
+      <BackfillProgress
+        repo={repo}
+        pollingRepos={pollingRepos}
+        retryingRepos={retryingRepos}
+        onRetry={handleRetryBackfill}
+      />
+    ),
+    [pollingRepos, retryingRepos],
+  );
 
   // DataTable columns definition
   const columns = useMemo(
@@ -451,7 +310,9 @@ const RepositoriesPage = () => {
         accessorKey: "enable_reports",
         cell: ({ row }) => {
           const isToggling = togglingRepos.has(String(row.original.id));
-          const isBackfilling = row.original.backfill?.status === "processing";
+          const isBackfilling =
+            row.original.backfill?.status === "processing" ||
+            row.original.backfill?.status === "pending";
           const hasFailedBackfill =
             row.original.backfill?.status === "failed" ||
             row.original.backfill?.status === "partial";
@@ -518,7 +379,25 @@ const RepositoriesPage = () => {
                   {repositories.length} total repositories
                 </p>
               </div>
-              <div>
+              <div className="d-flex gap-2">
+                <Button
+                  variant="outline-light"
+                  onClick={handleGlobalRecovery}
+                  disabled={isRecovering}
+                  size="sm"
+                >
+                  {isRecovering ? (
+                    <>
+                      <Spinner animation="border" size="sm" className="me-2" />
+                      Recovering...
+                    </>
+                  ) : (
+                    <>
+                      <RotateCw size={16} className="me-2" />
+                      Recover Jobs
+                    </>
+                  )}
+                </Button>
                 <Button
                   variant="white"
                   onClick={fetchRepositories}

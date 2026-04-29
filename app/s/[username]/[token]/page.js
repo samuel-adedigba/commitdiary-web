@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import {
   Container,
   Row,
@@ -32,11 +32,7 @@ const PublicSharePage = () => {
   const [activeRepo, setActiveRepo] = useState(null);
   const [expandedCommits, setExpandedCommits] = useState(new Set());
 
-  useEffect(() => {
-    fetchShare();
-  }, [username, token]);
-
-  const fetchShare = async () => {
+  const fetchShare = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -56,7 +52,11 @@ const PublicSharePage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, username]);
+
+  useEffect(() => {
+    fetchShare();
+  }, [fetchShare]);
 
   const currentRepoData = useMemo(() => {
     return shareData?.repos?.find((r) => r.repo_name === activeRepo);

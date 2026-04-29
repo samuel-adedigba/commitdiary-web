@@ -556,6 +556,13 @@ export interface ReportStatus {
     errorMessage?: string
 }
 
+function normalizeReportStatus(payload: any): ReportStatus {
+    return {
+        ...payload,
+        errorMessage: payload?.errorMessage ?? payload?.error_message ?? undefined
+    }
+}
+
 export interface RepositoryWithReports extends Repository {
     enable_reports: boolean
     backfill?: BackfillStatus | null
@@ -660,8 +667,68 @@ export async function toggleRepoReports(repoId: string, enabled: boolean): Promi
 }
 
 /**
- * Get backfill status for a repository
+ * Get pending jobs count for a repository
  */
+export async function getPendingJobsCount(repoId: string): Promise<{ pendingCount: number; failedCount: number; totalJobs: number }> {
+    const token = await getAuthToken()
+    if (!token) throw new Error('Not authenticated')
+
+    const response = await fetch(`${API_URL}/v1/repos/${repoId}/jobs/pending`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+
+    if (!response.ok) {
+        throw new Error(`Failed to get pending jobs: ${response.statusText}`)
+    }
+
+    return response.json()
+}
+
+/**
+ * Trigger manual job recovery
+ */
+export async function recoverJobs(): Promise<{ success: boolean; results: { recovered: number; failed: number; errors: string[] } }> {
+    const token = await getAuthToken()
+    if (!token) throw new Error('Not authenticated')
+
+    const response = await fetch(`${API_URL}/v1/jobs/recover`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+
+    if (!response.ok) {
+        throw new Error(`Failed to recover jobs: ${response.statusText}`)
+    }
+
+    return response.json()
+}
+
+/**
+ * Get system health and job statistics
+ */
+export async function getSystemHealth(): Promise<{ status: string; timestamp: string; statistics: { pendingJobs: number; failedJobs: number; activeBackfills: number } }> {
+    const token = await getAuthToken()
+    if (!token) throw new Error('Not authenticated')
+
+    const response = await fetch(`${API_URL}/v1/system/health`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+
+    if (!response.ok) {
+        throw new Error(`Failed to get system health: ${response.statusText}`)
+    }
+
+    return response.json()
+}
 export async function getBackfillStatus(repoId: string): Promise<{ backfill: BackfillStatus | null }> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
@@ -719,8 +786,8 @@ export async function getCommitReport(commitId: string): Promise<ReportStatus> {
     }
 
     const data = await response.json()
-    
-    return data
+
+    return normalizeReportStatus(data)
 }
 
 /**
@@ -742,7 +809,8 @@ export async function triggerCommitReport(commitId: string): Promise<ReportStatu
         throw new Error(errorData.error || `Failed to trigger report: ${response.statusText}`)
     }
 
-    return response.json()
+    const data = await response.json()
+    return normalizeReportStatus(data)
 }
 
 // Export API client
@@ -768,6 +836,10 @@ export const apiClient = {
     // Backfill APIs
     getBackfillStatus,
     retryBackfill,
+    // Job management APIs
+    getPendingJobsCount,
+    recoverJobs,
+    getSystemHealth,
     // Webhook APIs
     fetchWebhookSettings,
     updateWebhookSettings,

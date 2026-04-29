@@ -4,11 +4,25 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '/lib/supabaseClient'
 import { useAuth } from '/lib/auth-context'
 import type { RealtimeChannel } from '@supabase/supabase-js'
+import { logError } from '/lib/alerts/errorLogger'
 
 export interface ReportUpdate {
   type: 'report_completed' | 'report_failed' | 'job_status_change'
   commitId: number
-  data: any
+  data: Record<string, unknown>
+}
+
+export type RealtimeConnectionState = 'connecting' | 'connected' | 'degraded' | 'error'
+
+export interface RealtimeReportsState {
+  isConnected: boolean
+  status: RealtimeConnectionState
+  reportsStatus: RealtimeConnectionState
+  jobsStatus: RealtimeConnectionState
+  lastUpdate: Date | null
+  reportData: Record<string, unknown> | null
+  jobStatus: Record<string, unknown> | null
+  error: string | null
 }
 
 /**
@@ -19,9 +33,13 @@ export interface ReportUpdate {
  */
 export function useRealtimeReports(commitId?: number, onUpdate?: (update: ReportUpdate) => void) {
   const [isConnected, setIsConnected] = useState(false)
+  const [status, setStatus] = useState<RealtimeConnectionState>('connecting')
+  const [reportsStatus, setReportsStatus] = useState<RealtimeConnectionState>('connecting')
+  const [jobsStatus, setJobsStatus] = useState<RealtimeConnectionState>('connecting')
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
-  const [reportData, setReportData] = useState<any>(null)
-  const [jobStatus, setJobStatus] = useState<any>(null)
+  const [reportData, setReportData] = useState<Record<string, unknown> | null>(null)
+  const [jobStatus, setJobStatus] = useState<Record<string, unknown> | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const onUpdateRef = useRef(onUpdate)
   
   const { user } = useAuth()
@@ -34,6 +52,11 @@ export function useRealtimeReports(commitId?: number, onUpdate?: (update: Report
 
   useEffect(() => {
     if (!userId) return // Wait for user ID
+
+    setStatus('connecting')
+    setReportsStatus('connecting')
+    setJobsStatus('connecting')
+    setError(null)
     
     let reportsChannel: RealtimeChannel | null = null
     let jobsChannel: RealtimeChannel | null = null
@@ -67,7 +90,31 @@ export function useRealtimeReports(commitId?: number, onUpdate?: (update: Report
             }
           )
           .subscribe((status) => {
-            setIsConnected(status === 'SUBSCRIBED')
+            if (status === 'SUBSCRIBED') {
+              setIsConnected(true)
+              setStatus('connected')
+              setReportsStatus('connected')
+              setError(null)
+              return
+            }
+
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              setIsConnected(false)
+              setStatus('error')
+              setReportsStatus('error')
+              const nextError = `Report channel subscription failed (${status})`
+              setError(nextError)
+              logError({
+                title: 'Realtime Reports Subscription Error',
+                message: nextError,
+                severity: 'warning',
+                metadata: { userId, commitId, channel: 'commit_reports', status }
+              })
+              return
+            }
+
+            setStatus('connecting')
+            setReportsStatus('connecting')
           })
 
         // Subscribe to report_jobs table (UPDATEs - for status changes like failed)
@@ -97,9 +144,38 @@ export function useRealtimeReports(commitId?: number, onUpdate?: (update: Report
             }
           )
           .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              setJobsStatus('connected')
+              return
+            }
+
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              setStatus('degraded')
+              setJobsStatus('error')
+              const nextError = `Job status channel degraded (${status})`
+              setError((prev) => prev ?? nextError)
+              logError({
+                title: 'Realtime Job Status Subscription Error',
+                message: nextError,
+                severity: 'warning',
+                metadata: { userId, commitId, channel: 'report_jobs', status }
+              })
+            }
           })
 
       } catch (error) {
+        setIsConnected(false)
+        setStatus('error')
+        setReportsStatus('error')
+        setJobsStatus('error')
+        const nextError = error instanceof Error ? error.message : 'Failed to setup realtime subscriptions'
+        setError(nextError)
+        logError({
+          title: 'Realtime Setup Error',
+          message: nextError,
+          severity: 'warning',
+          metadata: { userId, commitId }
+        })
       }
     }
 
@@ -118,8 +194,12 @@ export function useRealtimeReports(commitId?: number, onUpdate?: (update: Report
 
   return { 
     isConnected, 
+    status,
+    reportsStatus,
+    jobsStatus,
     lastUpdate, 
     reportData, 
-    jobStatus 
-  }
+    jobStatus,
+    error
+  } satisfies RealtimeReportsState
 }
