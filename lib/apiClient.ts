@@ -123,6 +123,7 @@ export async function getCommits(params?: {
     limit?: number
     offset?: number
     category?: string
+    search?: string
 }): Promise<{ commits: Commit[]; total: number; limit: number; offset: number }> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
@@ -135,7 +136,8 @@ export async function getCommits(params?: {
         offset: String(params?.offset || 0),
         ...(params?.from && { from: params.from }),
         ...(params?.to && { to: params.to }),
-        ...(params?.category && { category: params.category })
+        ...(params?.category && { category: params.category }),
+        ...(params?.search && { search: params.search })
     })
 
     const url = `${API_URL}/v1/users/${user.id}/commits?${query}`
@@ -513,6 +515,7 @@ export async function getPublicShare(username: string, token: string, params?: {
     page?: number
     limit?: number
     repo?: string
+    refresh?: boolean
 }): Promise<{
     title: string
     description?: string
@@ -541,7 +544,8 @@ export async function getPublicShare(username: string, token: string, params?: {
     const query = new URLSearchParams({
         page: String(params?.page || 1),
         limit: String(params?.limit || 50),
-        ...(params?.repo && { repo: params.repo })
+        ...(params?.repo && { repo: params.repo }),
+        ...(params?.refresh && { refresh: "1" })
     })
 
     const response = await fetch(`${API_URL}/s/${username}/${token}?${query}`)

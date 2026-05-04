@@ -27,6 +27,15 @@ import { useRealtimeCommits } from "/hooks/useRealtimeCommits";
 import { DataTable } from "components/DataTable";
 import ReportModal from "components/ReportModal";
 
+const CATEGORY_FILTER_TO_API_CATEGORY = {
+  feature: "Feature",
+  bugfix: "Fix",
+  refactor: "Refactor",
+  docs: "Docs",
+  test: "Test",
+  chore: "Chore",
+};
+
 const CommitsPage = () => {
   const [commits, setCommits] = useState([]);
   const [totalCommits, setTotalCommits] = useState(0);
@@ -59,7 +68,11 @@ const CommitsPage = () => {
         if (dateRange === "custom") {
           if (customStartDate)
             params.from = new Date(customStartDate).toISOString();
-          if (customEndDate) params.to = new Date(customEndDate).toISOString();
+          if (customEndDate) {
+            const endDate = new Date(customEndDate);
+            endDate.setHours(23, 59, 59, 999);
+            params.to = endDate.toISOString();
+          }
         } else {
           const days = dateRange === "7d" ? 7 : dateRange === "30d" ? 30 : 90;
           const date = new Date();
@@ -68,7 +81,8 @@ const CommitsPage = () => {
         }
       }
       if (categoryFilter !== "all") {
-        params.category = categoryFilter;
+        params.category =
+          CATEGORY_FILTER_TO_API_CATEGORY[categoryFilter] || categoryFilter;
       }
       if (searchTerm) {
         params.search = searchTerm;

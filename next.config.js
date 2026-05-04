@@ -11,9 +11,10 @@ const securityHeaders = [
     value: [
       "default-src 'self'",
       "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // unsafe-inline needed for Next.js, consider removing in strict mode
-      "style-src 'self' 'unsafe-inline'", // unsafe-inline needed for styled-components/tailwind
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com", // Allow known external stylesheets used in theme.scss
+      "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
       "img-src 'self' data: https: http:", // Allow images from any source (including GitHub avatars)
-      "font-src 'self' data:",
+      "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com",
       // Allow API calls to Supabase and your API server (http/https + WebSocket)
       isDevelopment
         ? `connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in ${apiUrl} http://localhost:* ws://localhost:*`

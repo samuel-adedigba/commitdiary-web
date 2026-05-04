@@ -19,6 +19,9 @@ import {
   Download,
   Calendar,
   GitBranch,
+  Eye,
+  ExternalLink,
+  Image,
 } from "react-feather";
 import { apiClient } from "/lib/apiClient";
 import { DataTable } from "components/DataTable";
@@ -28,6 +31,9 @@ const SharesPage = () => {
   const [repositories, setRepositories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewShare, setPreviewShare] = useState(null);
+  const [previewVersion, setPreviewVersion] = useState(0);
   const [createLoading, setCreateLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -125,6 +131,31 @@ const SharesPage = () => {
     setTimeout(() => setSuccess(""), 2000);
   };
 
+  const parseSharePath = (url) => {
+    try {
+      const parsed = new URL(url);
+      const parts = parsed.pathname.split("/").filter(Boolean);
+      if (parts.length >= 3 && parts[0] === "s") {
+        return { username: parts[1], token: parts[2] };
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const getBadgeUrl = (share) => {
+    const parts = parseSharePath(share.url);
+    if (!parts) return null;
+    return `${window.location.origin}/api/badge/${parts.username}/${parts.token}`;
+  };
+
+  const handlePreviewShare = (share) => {
+    setPreviewShare(share);
+    setPreviewVersion(Date.now());
+    setShowPreviewModal(true);
+  };
+
   const handleRevoke = async (shareId) => {
     if (
       !confirm(
@@ -177,25 +208,49 @@ const SharesPage = () => {
       accessorKey: "scope",
       header: "Scope",
       cell: ({ row }) => {
-        const scope = row.original.scope;
+        const scope = row.original.scope || {};
+        const hasRepoFilter = Array.isArray(scope.repos) && scope.repos.length > 0;
         return (
           <div className="small">
-            {scope.repos && scope.repos.length > 0 && (
+            {scope.live && (
               <div>
-                <GitBranch size={12} className="me-1" />
-                {scope.repos.length} repos
+                <Badge bg="info" className="me-2">Live</Badge>
+                Auto-refresh
               </div>
             )}
-            {scope.from && (
+            <div>
+              <GitBranch size={12} className="me-1" />
+              {hasRepoFilter ? `${scope.repos.length} selected repos` : "All repos"}
+            </div>
+            {hasRepoFilter && (
+              <div>
+                {scope.repos.slice(0, 2).join(", ")}
+                {scope.repos.length > 2 ? ` +${scope.repos.length - 2} more` : ""}
+              </div>
+            )}
+            {!scope.from && !scope.to && (
+              <div>
+                <Calendar size={12} className="me-1" />
+                All time
+              </div>
+            )}
+            {scope.from && scope.to && (
+              <div>
+                <Calendar size={12} className="me-1" />
+                {new Date(scope.from).toLocaleDateString()} -{" "}
+                {new Date(scope.to).toLocaleDateString()}
+              </div>
+            )}
+            {scope.from && !scope.to && (
               <div>
                 <Calendar size={12} className="me-1" />
                 From {new Date(scope.from).toLocaleDateString()}
               </div>
             )}
-            {scope.to && (
+            {!scope.from && scope.to && (
               <div>
                 <Calendar size={12} className="me-1" />
-                To {new Date(scope.to).toLocaleDateString()}
+                Until {new Date(scope.to).toLocaleDateString()}
               </div>
             )}
           </div>
@@ -205,14 +260,30 @@ const SharesPage = () => {
     {
       accessorKey: "total_commits",
       header: "Commits",
-      cell: ({ row }) => (
-        <div>
-          <Badge bg="primary">{row.original.total_commits}</Badge>
-          <span className="ms-2 text-muted small">
-            {row.original.total_repos} repos
-          </span>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const share = row.original;
+        const totalCommits = Number(share.total_commits || 0);
+        const totalRepos = Number(share.total_repos || 0);
+        const scopeReposCount = Array.isArray(share.scope?.repos)
+          ? share.scope.repos.length
+          : 0;
+        const reposLabel =
+          totalRepos > 0
+            ? `${totalRepos} repos`
+            : scopeReposCount > 0
+              ? `${scopeReposCount} selected repos`
+              : "all repos";
+        const pendingSnapshot = totalCommits === 0 && !!share.scope?.live;
+
+        return (
+          <div>
+            <Badge bg={pendingSnapshot ? "warning" : "primary"}>
+              {pendingSnapshot ? "Syncing..." : totalCommits}
+            </Badge>
+            <span className="ms-2 text-muted small">{reposLabel}</span>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "status",
@@ -244,6 +315,22 @@ const SharesPage = () => {
       header: "Actions",
       cell: ({ row }) => (
         <div className="d-flex gap-2">
+          <Button
+            size="sm"
+            variant="outline-success"
+            onClick={() => window.open(row.original.url, "_blank")}
+            title="Open share page"
+          >
+            <ExternalLink size={14} />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline-info"
+            onClick={() => handlePreviewShare(row.original)}
+            title="Preview share and badge"
+          >
+            <Eye size={14} />
+          </Button>
           <Button
             size="sm"
             variant="outline-primary"
@@ -477,6 +564,67 @@ const SharesPage = () => {
             </Button>
           </Modal.Footer>
         </Form>
+      </Modal>
+
+      {/* Preview Modal */}
+      <Modal
+        show={showPreviewModal}
+        onHide={() => {
+          setShowPreviewModal(false);
+          setPreviewShare(null);
+        }}
+        size="xl"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            Share Preview {previewShare ? `- ${previewShare.title}` : ""}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {previewShare && (
+            <div className="d-flex flex-column gap-3">
+              <div className="d-flex flex-wrap gap-2">
+                <Button
+                  variant="primary"
+                  onClick={() => window.open(previewShare.url, "_blank")}
+                >
+                  <ExternalLink size={16} className="me-2" />
+                  Open Share Page
+                </Button>
+                <Button
+                  variant="outline-primary"
+                  onClick={() => handleCopyLink(previewShare.url)}
+                >
+                  <Copy size={16} className="me-2" />
+                  Copy Share Link
+                </Button>
+                {getBadgeUrl(previewShare) && (
+                  <Button
+                    variant="outline-secondary"
+                    onClick={() => handleCopyLink(getBadgeUrl(previewShare))}
+                  >
+                    <Image size={16} className="me-2" />
+                    Copy Badge URL
+                  </Button>
+                )}
+              </div>
+
+              {getBadgeUrl(previewShare) && (
+                <Card>
+                  <Card.Header className="py-2">SVG Badge (Full Width Preview)</Card.Header>
+                  <Card.Body>
+                    <img
+                      src={`${getBadgeUrl(previewShare)}?v=${previewVersion}`}
+                      alt="Share badge preview"
+                      style={{ width: "100%", height: "auto", borderRadius: 8 }}
+                    />
+                  </Card.Body>
+                </Card>
+              )}
+
+            </div>
+          )}
+        </Modal.Body>
       </Modal>
     </Fragment>
   );

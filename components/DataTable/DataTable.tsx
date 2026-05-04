@@ -300,14 +300,16 @@ function DataTable<T>(props: DataTableProps<T>) {
             ))}
           </THead>
           {loading && data.length === 0 ? (
-            <TableRowSkeleton
-              columns={(finalColumns as Array<T>).length}
-              rows={pagingData.pageSize}
-              avatarInColumns={skeletonAvatarColumns}
-              avatarProps={skeletonAvatarProps}
-            />
+            <TBody className="overflow-auto">
+              <TableRowSkeleton
+                columns={(finalColumns as Array<T>).length}
+                rows={pagingData.pageSize}
+                avatarInColumns={skeletonAvatarColumns}
+                avatarProps={skeletonAvatarProps}
+              />
+            </TBody>
           ) : (
-            <TBody className="overflow-auto" >
+            <TBody className="overflow-auto">
               {noData ? (
                 <Tr>
                   <Td className="text-center py-5" colSpan={finalColumns.length}>

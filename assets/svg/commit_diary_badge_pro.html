@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: transparent; font-family: var(--font-sans, 'Segoe UI', sans-serif); }
+
+.badge-wrap {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%);
+}
+.badge-inner {
+  background: var(--color-background-primary);
+  border-radius: 18px;
+  padding: 28px 28px 22px;
+  position: relative;
+  overflow: hidden;
+}
+.badge-inner::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.badge-inner::after {
+  content: '';
+  position: absolute;
+  bottom: -40px; left: -40px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(139,92,246,0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Header */
+.header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+.header-left {}
+.badge-title { font-size: 20px; font-weight: 500; color: var(--color-text-primary); line-height: 1.2; }
+.badge-subtitle { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+.header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; position: relative; }
+.status-dot::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; border: 1.5px solid #22c55e; opacity: 0.5; }
+.status-text { font-size: 12px; color: var(--color-text-secondary); }
+.username-badge {
+  font-size: 12px; font-weight: 500;
+  padding: 4px 10px; border-radius: 20px;
+  background: var(--color-background-secondary);
+  border: 0.5px solid var(--color-border-tertiary);
+  color: var(--color-text-secondary);
+}
+
+/* Stat row */
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 22px; }
+.stat-card {
+  background: var(--color-background-secondary);
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 0.5px solid var(--color-border-tertiary);
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: 12px 12px 0 0;
+}
+.stat-card.blue::before { background: #3b82f6; }
+.stat-card.purple::before { background: #8b5cf6; }
+.stat-card.teal::before { background: #06b6d4; }
+.stat-card.amber::before { background: #f59e0b; }
+.stat-label { font-size: 11px; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+.stat-value { font-size: 26px; font-weight: 500; color: var(--color-text-primary); line-height: 1; }
+.stat-delta { font-size: 11px; margin-top: 4px; }
+.stat-delta.up { color: #22c55e; }
+.stat-delta.neutral { color: var(--color-text-secondary); }
+
+/* Charts row */
+.charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+
+.chart-block {
+  background: var(--color-background-secondary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: 14px;
+  padding: 16px;
+  position: relative;
+}
+.chart-block-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--color-text-secondary); margin-bottom: 12px; font-weight: 500; }
+
+/* Activity Heatmap */
+.heatmap-grid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px; }
+.heatmap-cell { aspect-ratio: 1; border-radius: 2px; }
+
+/* Bar chart */
+.bar-area { display: flex; align-items: flex-end; gap: 2px; height: 80px; }
+.bar-col { flex: 1; border-radius: 3px 3px 0 0; transition: opacity 0.2s; min-height: 3px; }
+.bar-labels { display: flex; justify-content: space-between; margin-top: 5px; }
+.bar-label { font-size: 10px; color: var(--color-text-secondary); }
+
+/* Donut chart */
+.donut-wrap { display: flex; align-items: center; gap: 14px; }
+.donut-svg-wrap { flex-shrink: 0; }
+.donut-legend { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.legend-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--color-text-secondary); }
+.legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.legend-pct { margin-left: auto; font-weight: 500; color: var(--color-text-primary); font-size: 11px; }
+
+/* Language strip */
+.lang-strip {
+  background: var(--color-background-secondary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.lang-strip-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--color-text-secondary); margin-bottom: 12px; font-weight: 500; }
+.lang-bar-row { display: flex; gap: 2px; border-radius: 6px; overflow: hidden; height: 10px; margin-bottom: 10px; }
+.lang-seg { height: 100%; transition: flex 0.3s; }
+.lang-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.lang-tag {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--color-text-secondary);
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+}
+.lang-tag-dot { width: 6px; height: 6px; border-radius: 50%; }
+.lang-tag-pct { font-size: 11px; opacity: 0.65; }
+
+/* Streak & insights row */
+.bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.insight-card {
+  background: var(--color-background-secondary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: 14px;
+  padding: 16px;
+}
+.insight-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--color-text-secondary); margin-bottom: 10px; font-weight: 500; }
+.streak-row { display: flex; align-items: center; gap: 10px; }
+.streak-num { font-size: 32px; font-weight: 500; color: var(--color-text-primary); }
+.streak-label { font-size: 12px; color: var(--color-text-secondary); }
+.streak-icons { display: flex; gap: 2px; margin-top: 6px; }
+.streak-icon { width: 16px; height: 16px; border-radius: 3px; }
+.commit-list { display: flex; flex-direction: column; gap: 6px; }
+.commit-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text-secondary); }
+.commit-dot { width: 6px; height: 6px; border-radius: 50%; background: #3b82f6; flex-shrink: 0; }
+.commit-msg { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-primary); }
+.commit-time { font-size: 11px; color: var(--color-text-secondary); flex-shrink: 0; }
+
+/* Branding */
+.brand-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 14px; border-top: 0.5px solid var(--color-border-tertiary); }
+.brand-text { font-size: 11px; color: var(--color-text-secondary); }
+.brand-name { font-weight: 500; color: #3b82f6; }
+.share-btn {
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 0.5px solid var(--color-border-secondary);
+  background: var(--color-background-primary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.share-btn:hover { background: var(--color-background-secondary); }
+</style>
+
+<div class="badge-wrap">
+  <div class="badge-inner">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <div class="badge-title">Commit Diary · Activity Report</div>
+        <div class="badge-subtitle">Developer productivity snapshot · Last 30 days</div>
+      </div>
+      <div class="header-right">
+        <div class="status-dot"></div>
+        <div class="status-text">Active today</div>
+        <div class="username-badge">@samuel_dev</div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stat-row" id="statRow"></div>
+
+    <!-- Charts Row -->
+    <div class="charts-row">
+      <!-- Activity timeline -->
+      <div class="chart-block">
+        <div class="chart-block-title">Daily commits · 30d</div>
+        <div class="bar-area" id="barChart"></div>
+        <div class="bar-labels">
+          <span class="bar-label" id="barStart"></span>
+          <span class="bar-label" id="barEnd"></span>
+        </div>
+      </div>
+      <!-- Heatmap -->
+      <div class="chart-block">
+        <div class="chart-block-title">Activity heatmap</div>
+        <div class="heatmap-grid" id="heatmapGrid"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;">
+          <span style="font-size:10px;color:var(--color-text-secondary)">Mon</span>
+          <span style="font-size:10px;color:var(--color-text-secondary)">→ Today</span>
+        </div>
+      </div>
+      <!-- Donut -->
+      <div class="chart-block">
+        <div class="chart-block-title">Project distribution</div>
+        <div class="donut-wrap">
+          <div class="donut-svg-wrap">
+            <svg id="donutSvg" width="90" height="90" viewBox="0 0 90 90"></svg>
+          </div>
+          <div class="donut-legend" id="donutLegend"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Language strip -->
+    <div class="lang-strip">
+      <div class="lang-strip-title">Language proficiency distribution</div>
+      <div class="lang-bar-row" id="langBar"></div>
+      <div class="lang-tags" id="langTags"></div>
+    </div>
+
+    <!-- Bottom row -->
+    <div class="bottom-row">
+      <div class="insight-card">
+        <div class="insight-title">Streak & consistency</div>
+        <div class="streak-row">
+          <div>
+            <div class="streak-num" id="streakNum">—</div>
+            <div class="streak-label">day streak</div>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px;">Active days this month</div>
+            <div style="display:flex;gap:2px;flex-wrap:wrap;" id="streakDots"></div>
+          </div>
+        </div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-title">Recent commits</div>
+        <div class="commit-list" id="commitList"></div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="brand-footer">
+      <div class="brand-text">Powered by <span class="brand-name">CommitDiary</span> · Generated May 2026</div>
+      <button class="share-btn" onclick="alert('Share link copied!')">Share badge ↗</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── Mock data (replace with real processXxx() calls) ───────────────────────
+const REPO_COLORS = ['#3b82f6','#8b5cf6','#06b6d4','#f59e0b','#ef4444','#10b981','#ec4899','#f97316'];
+
+const stats = {
+  username: 'samuel_dev',
+  totalCommits: 247,
+  totalRepos: 8,
+  streak: 14,
+  activeDays: 22,
+  avgPerDay: 8.2,
+  topCategory: 'feat',
+  daysSinceLastActive: 0,
+  weeklyDelta: '+18%',
+  reposDelta: '8 active',
+};
+
+const repos = [
+  { name: 'dsme-backend', percentage: 38 },
+  { name: 'next-frontend', percentage: 22 },
+  { name: 'cylinder-audit', percentage: 16 },
+  { name: 'school-mgmt', percentage: 12 },
+  { name: 'other', percentage: 12 },
+];
+
+const languages = [
+  { name: 'TypeScript', pct: 42, color: '#3b82f6' },
+  { name: 'JavaScript', pct: 28, color: '#f59e0b' },
+  { name: 'Python', pct: 12, color: '#10b981' },
+  { name: 'SQL', pct: 8, color: '#8b5cf6' },
+  { name: 'CSS', pct: 6, color: '#ec4899' },
+  { name: 'Shell', pct: 4, color: '#64748b' },
+];
+
+// Random-ish timeline (seeded feel)
+const seed = [2,0,4,1,6,3,8,2,5,1,9,4,7,2,11,5,3,8,2,6,4,9,12,7,3,5,8,10,6,14];
+const timeline = seed.map((v,i)=>({ count: v, date: (() => { const d = new Date(); d.setDate(d.getDate()-(29-i)); return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); })() }));
+
+const recentCommits = [
+  { msg: 'feat: add wallet double-entry ledger', time: '2h ago', color: '#3b82f6' },
+  { msg: 'fix: Paystack BVN verification edge case', time: '5h ago', color: '#ef4444' },
+  { msg: 'refactor: Prisma row-level locking', time: 'yesterday', color: '#8b5cf6' },
+  { msg: 'feat: Flutterwave DVA wallet endpoint', time: 'yesterday', color: '#3b82f6' },
+];
+
+// ─── Render stat cards ────────────────────────────────────────────────────────
+const statDefs = [
+  { label: 'Total commits', value: stats.totalCommits, delta: stats.weeklyDelta + ' this week', cls: 'blue', up: true },
+  { label: 'Active projects', value: stats.totalRepos, delta: stats.reposDelta, cls: 'purple', up: false },
+  { label: 'Avg/day', value: stats.avgPerDay.toFixed(1), delta: 'commits per active day', cls: 'teal', up: false },
+  { label: 'Active days', value: stats.activeDays + '/30', delta: 'this month', cls: 'amber', up: false },
+];
+document.getElementById('statRow').innerHTML = statDefs.map(s => `
+  <div class="stat-card ${s.cls}">
+    <div class="stat-label">${s.label}</div>
+    <div class="stat-value">${s.value}</div>
+    <div class="stat-delta ${s.up?'up':'neutral'}">${s.up?'↑ ':''}${s.delta}</div>
+  </div>
+`).join('');
+
+// ─── Bar chart ────────────────────────────────────────────────────────────────
+const maxCount = Math.max(...timeline.map(t => t.count), 1);
+document.getElementById('barChart').innerHTML = timeline.map((t, i) => {
+  const h = Math.max(4, Math.round((t.count / maxCount) * 80));
+  const isRecent = i === timeline.length - 1;
+  const opacity = t.count === 0 ? 0.12 : 0.45 + (t.count / maxCount) * 0.55;
+  const color = isRecent ? '#60a5fa' : '#3b82f6';
+  return `<div class="bar-col" style="height:${h}px;background:${color};opacity:${opacity.toFixed(2)};"></div>`;
+}).join('');
+document.getElementById('barStart').textContent = timeline[0].date;
+document.getElementById('barEnd').textContent = timeline[29].date;
+
+// ─── Heatmap ──────────────────────────────────────────────────────────────────
+const heatColors = ['#e2e8f0','#bfdbfe','#93c5fd','#60a5fa','#2563eb'];
+document.getElementById('heatmapGrid').innerHTML = timeline.map(t => {
+  const level = t.count === 0 ? 0 : t.count <= 2 ? 1 : t.count <= 5 ? 2 : t.count <= 9 ? 3 : 4;
+  return `<div class="heatmap-cell" style="background:${heatColors[level]};"></div>`;
+}).join('') + Array(13*4 - 30).fill('<div class="heatmap-cell" style="background:#f1f5f9;opacity:0.4;"></div>').join('');
+
+// ─── Donut ────────────────────────────────────────────────────────────────────
+(function() {
+  const svg = document.getElementById('donutSvg');
+  const cx = 45, cy = 45, ro = 38, ri = 24;
+  let angle = -90;
+  let paths = '';
+  repos.forEach((r, i) => {
+    const sweep = (r.percentage / 100) * 360;
+    const a1 = angle * Math.PI / 180;
+    const a2 = (angle + sweep) * Math.PI / 180;
+    const x1o = cx + ro * Math.cos(a1), y1o = cy + ro * Math.sin(a1);
+    const x2o = cx + ro * Math.cos(a2), y2o = cy + ro * Math.sin(a2);
+    const x1i = cx + ri * Math.cos(a1), y1i = cy + ri * Math.sin(a1);
+    const x2i = cx + ri * Math.cos(a2), y2i = cy + ri * Math.sin(a2);
+    const large = sweep > 180 ? 1 : 0;
+    paths += `<path d="M ${x1o} ${y1o} A ${ro} ${ro} 0 ${large} 1 ${x2o} ${y2o} L ${x2i} ${y2i} A ${ri} ${ri} 0 ${large} 0 ${x1i} ${y1i} Z" fill="${REPO_COLORS[i]}" stroke="var(--color-background-secondary)" stroke-width="1.5"/>`;
+    angle += sweep;
+  });
+  svg.innerHTML = paths;
+
+  document.getElementById('donutLegend').innerHTML = repos.map((r, i) => `
+    <div class="legend-row">
+      <div class="legend-dot" style="background:${REPO_COLORS[i]};"></div>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:72px">${r.name}</span>
+      <span class="legend-pct">${r.percentage}%</span>
+    </div>
+  `).join('');
+})();
+
+// ─── Language bar + tags ──────────────────────────────────────────────────────
+document.getElementById('langBar').innerHTML = languages.map(l =>
+  `<div class="lang-seg" style="flex:${l.pct};background:${l.color};"></div>`
+).join('');
+document.getElementById('langTags').innerHTML = languages.map(l => `
+  <div class="lang-tag">
+    <div class="lang-tag-dot" style="background:${l.color};"></div>
+    <span>${l.name}</span>
+    <span class="lang-tag-pct">${l.pct}%</span>
+  </div>
+`).join('');
+
+// ─── Streak dots ──────────────────────────────────────────────────────────────
+document.getElementById('streakNum').textContent = stats.streak;
+const dotColors = timeline.map(t => t.count > 0 ? '#3b82f6' : 'var(--color-border-tertiary)');
+document.getElementById('streakDots').innerHTML = dotColors.map(c =>
+  `<div style="width:9px;height:9px;border-radius:2px;background:${c};flex-shrink:0;"></div>`
+).join('');
+
+// ─── Recent commits ───────────────────────────────────────────────────────────
+document.getElementById('commitList').innerHTML = recentCommits.map(c => `
+  <div class="commit-item">
+    <div class="commit-dot" style="background:${c.color};"></div>
+    <div class="commit-msg">${c.msg}</div>
+    <div class="commit-time">${c.time}</div>
+  </div>
+`).join('');
+</script>

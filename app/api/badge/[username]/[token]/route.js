@@ -8,6 +8,9 @@ import {
 } from "/lib/badgeDataProcessor";
 import { generateBadgeSVG } from "/lib/svgBadgeGenerator";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(request, { params }) {
   const { username, token } = params;
 
@@ -16,6 +19,7 @@ export async function GET(request, { params }) {
     const shareData = await apiClient.getPublicShare(username, token, {
       page: 1,
       limit: 100,
+      refresh: true,
     });
 
     if (!shareData) {
@@ -35,8 +39,9 @@ export async function GET(request, { params }) {
     return new NextResponse(svg, {
       headers: {
         "Content-Type": "image/svg+xml",
-        "Cache-Control":
-          "public, max-age=300, s-maxage=600, stale-while-revalidate=400",
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        Pragma: "no-cache",
+        Expires: "0",
       },
     });
   } catch (error) {
