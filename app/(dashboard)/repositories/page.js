@@ -27,6 +27,7 @@ import {
 } from "react-feather";
 import { apiClient } from "/lib/apiClient";
 import { useBackfillStatus } from "/hooks/useBackfillStatus";
+import { isActiveBackfill, isStalledBackfill } from "/lib/reports/backfillStatus";
 import BackfillProgress from "components/reports/BackfillProgress";
 import { DataTable } from "components/DataTable";
 
@@ -45,18 +46,13 @@ const RepositoriesPage = () => {
       setLoading(true);
       // Use the endpoint that includes enable_reports and backfill status
       const data = await apiClient.getReposWithReportSettings();
+      const repos = data.repos || data;
 
-      setRepositories(data.repos || data);
+      setRepositories(repos);
 
       // Start polling for any repos with active backfills
-      const activeBackfills = (data.repos || []).filter(
-        (r) =>
-          r.backfill?.status === "processing" ||
-          r.backfill?.status === "pending",
-      );
-      if (activeBackfills.length > 0) {
-        setPollingRepos(new Set(activeBackfills.map((r) => String(r.id))));
-      }
+      const activeBackfills = repos.filter((r) => isActiveBackfill(r.backfill));
+      setPollingRepos(new Set(activeBackfills.map((r) => String(r.id))));
     } catch (error) {
       // Fallback to regular getRepositories if new endpoint fails
       try {
@@ -84,10 +80,7 @@ const RepositoriesPage = () => {
     [pollingRepos],
   );
 
-  useBackfillStatus({
-    repoIds: activePollingRepoIds,
-    enabled: activePollingRepoIds.length > 0,
-    onBackfillUpdate: (repoId, backfill) => {
+  const handleBackfillUpdate = useCallback((repoId, backfill) => {
       setRepositories((prev) =>
         prev.map((repo) =>
           String(repo.id) === String(repoId)
@@ -99,7 +92,10 @@ const RepositoriesPage = () => {
         ),
       );
     },
-    onTerminalState: (repoId) => {
+    [],
+  );
+
+  const handleBackfillTerminalState = useCallback((repoId) => {
       setPollingRepos((prev) => {
         const next = new Set(prev);
         next.delete(String(repoId));
@@ -107,6 +103,14 @@ const RepositoriesPage = () => {
       });
       fetchRepositories();
     },
+    [fetchRepositories],
+  );
+
+  useBackfillStatus({
+    repoIds: activePollingRepoIds,
+    enabled: activePollingRepoIds.length > 0,
+    onBackfillUpdate: handleBackfillUpdate,
+    onTerminalState: handleBackfillTerminalState,
   });
 
   const handleToggleReports = async (repoId, currentEnabled) => {
@@ -135,10 +139,7 @@ const RepositoriesPage = () => {
           ),
         );
 
-        if (
-          result.backfill?.status === "processing" ||
-          result.backfill?.status === "pending"
-        ) {
+        if (isActiveBackfill(result.backfill)) {
           setPollingRepos((prev) => new Set([...prev, repoIdStr]));
         }
       } else {
@@ -184,7 +185,7 @@ const RepositoriesPage = () => {
       );
 
       // Start polling for this repo only if backfill is in processing state
-      if (result.backfill?.status === "processing") {
+      if (isActiveBackfill(result.backfill)) {
         setPollingRepos((prev) => new Set([...prev, repoIdStr]));
       }
     } catch (error) {
@@ -310,25 +311,34 @@ const RepositoriesPage = () => {
         accessorKey: "enable_reports",
         cell: ({ row }) => {
           const isToggling = togglingRepos.has(String(row.original.id));
-          const isBackfilling =
-            row.original.backfill?.status === "processing" ||
-            row.original.backfill?.status === "pending";
+          const isBackfilling = isActiveBackfill(row.original.backfill);
+          const isStalled = isStalledBackfill(row.original.backfill);
           const hasFailedBackfill =
             row.original.backfill?.status === "failed" ||
-            row.original.backfill?.status === "partial";
+            row.original.backfill?.status === "partial" ||
+            isStalled;
           return (
             <div className="d-flex align-items-center gap-2">
               <Form.Check
                 type="switch"
                 id={`report-toggle-${row.original.id}`}
                 checked={row.original.enable_reports || isBackfilling}
-                onChange={() =>
+                onChange={() => {
+                  if (isStalled) {
+                    handleRetryBackfill(row.original.id);
+                    return;
+                  }
+
                   handleToggleReports(
                     row.original.id,
                     row.original.enable_reports || isBackfilling,
-                  )
+                  );
+                }}
+                disabled={
+                  isToggling ||
+                  isBackfilling ||
+                  retryingRepos.has(String(row.original.id))
                 }
-                disabled={isToggling || isBackfilling}
                 className="m-0"
               />
               {isBackfilling && (

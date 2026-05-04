@@ -6,6 +6,20 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 let cachedUser: any = null
 let lastUserFetch = 0
 const USER_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+const COMMITS_DEDUPE_WINDOW_MS = 5000
+const REPOS_REPORTS_DEDUPE_WINDOW_MS = 5000
+const inFlightCommitsRequests = new Map<string, Promise<{ commits: Commit[]; total: number; limit: number; offset: number }>>()
+const recentCommitsResponses = new Map<string, { ts: number; data: { commits: Commit[]; total: number; limit: number; offset: number } }>()
+let inFlightReposReportsRequest: Promise<RepositoryWithReports[]> | null = null
+let recentReposReportsResponse: { ts: number; data: RepositoryWithReports[] } | null = null
+
+function clearCommitsCache() {
+    recentCommitsResponses.clear()
+}
+
+function clearReposReportsCache() {
+    recentReposReportsResponse = null
+}
 
 async function getCachedUser() {
     const now = Date.now()
@@ -125,21 +139,48 @@ export async function getCommits(params?: {
     })
 
     const url = `${API_URL}/v1/users/${user.id}/commits?${query}`
+    const requestKey = `${user.id}:${query.toString()}`
+    const now = Date.now()
+    const recent = recentCommitsResponses.get(requestKey)
 
-    const response = await fetch(url, {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    })
-
-    if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`Failed to fetch commits: ${response.statusText}`)
+    if (recent && (now - recent.ts) < COMMITS_DEDUPE_WINDOW_MS) {
+        return recent.data
     }
 
-    const data = await response.json()
+    const inFlight = inFlightCommitsRequests.get(requestKey)
+    if (inFlight) {
+        return inFlight
+    }
 
-    return data
+    const requestPromise = (async () => {
+        const response = await fetch(url, {
+            cache: 'no-store',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch commits: ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        const normalized = {
+            commits: data?.commits || [],
+            total: data?.total || 0,
+            limit: data?.limit || Number(params?.limit || 50),
+            offset: data?.offset || Number(params?.offset || 0),
+        }
+        recentCommitsResponses.set(requestKey, { ts: Date.now(), data: normalized })
+        return normalized
+    })()
+
+    inFlightCommitsRequests.set(requestKey, requestPromise)
+    try {
+        return await requestPromise
+    } finally {
+        inFlightCommitsRequests.delete(requestKey)
+    }
 }
 
 export async function getRepoMetrics(
@@ -628,18 +669,38 @@ export async function getReposWithReportSettings(): Promise<RepositoryWithReport
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/repos/reports`, {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    })
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch repos: ${response.statusText}`)
+    const now = Date.now()
+    if (recentReposReportsResponse && (now - recentReposReportsResponse.ts) < REPOS_REPORTS_DEDUPE_WINDOW_MS) {
+        return recentReposReportsResponse.data
     }
 
-    const data = await response.json()
-    return data.repos || []
+    if (inFlightReposReportsRequest) {
+        return inFlightReposReportsRequest
+    }
+
+    inFlightReposReportsRequest = (async () => {
+        const response = await fetch(`${API_URL}/v1/repos/reports`, {
+            cache: 'no-store',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch repos: ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        const repos = data.repos || []
+        recentReposReportsResponse = { ts: Date.now(), data: repos }
+        return repos
+    })()
+
+    try {
+        return await inFlightReposReportsRequest
+    } finally {
+        inFlightReposReportsRequest = null
+    }
 }
 
 /**
@@ -663,6 +724,7 @@ export async function toggleRepoReports(repoId: string, enabled: boolean): Promi
         throw new Error(errorData.error || `Failed to toggle reports: ${response.statusText}`)
     }
 
+    clearReposReportsCache()
     return response.json()
 }
 
@@ -706,6 +768,7 @@ export async function recoverJobs(): Promise<{ success: boolean; results: { reco
         throw new Error(`Failed to recover jobs: ${response.statusText}`)
     }
 
+    clearReposReportsCache()
     return response.json()
 }
 
@@ -765,6 +828,7 @@ export async function retryBackfill(repoId: string): Promise<{ message: string; 
         throw new Error(errorData.error || `Failed to retry backfill: ${response.statusText}`)
     }
 
+    clearReposReportsCache()
     return response.json()
 }
 
@@ -776,6 +840,7 @@ export async function getCommitReport(commitId: string): Promise<ReportStatus> {
     if (!token) throw new Error('Not authenticated')
 
     const response = await fetch(`${API_URL}/v1/commits/${commitId}/report`, {
+        cache: 'no-store',
         headers: {
             'Authorization': `Bearer ${token}`
         }
@@ -786,6 +851,9 @@ export async function getCommitReport(commitId: string): Promise<ReportStatus> {
     }
 
     const data = await response.json()
+    if (data?.status === 'completed') {
+        clearCommitsCache()
+    }
 
     return normalizeReportStatus(data)
 }
@@ -799,6 +867,7 @@ export async function triggerCommitReport(commitId: string): Promise<ReportStatu
 
     const response = await fetch(`${API_URL}/v1/commits/${commitId}/report`, {
         method: 'POST',
+        cache: 'no-store',
         headers: {
             'Authorization': `Bearer ${token}`
         }
@@ -810,6 +879,7 @@ export async function triggerCommitReport(commitId: string): Promise<ReportStatu
     }
 
     const data = await response.json()
+    clearCommitsCache()
     return normalizeReportStatus(data)
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState, useMemo } from "react";
+import { Fragment, useEffect, useState, useMemo, useRef } from "react";
 import {
   Container,
   Col,
@@ -38,6 +38,7 @@ const CommitsPage = () => {
   const [customEndDate, setCustomEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const hasMountedRef = useRef(false);
 
   // Report modal state
   const [showReportModal, setShowReportModal] = useState(false);
@@ -86,13 +87,24 @@ const CommitsPage = () => {
   };
 
   useEffect(() => {
-    setCurrentPage(1); // Reset to page 1 when filters change
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+
     const timeoutId = setTimeout(() => {
-      fetchCommits(1, pageSize);
-    }, 500); // Debounce search
+      // Reset to first page for filter changes.
+      // If already on page 1, fetch immediately after debounce.
+      if (currentPage === 1) {
+        fetchCommits(1, pageSize);
+      } else {
+        setCurrentPage(1);
+      }
+    }, 500);
+
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateRange, categoryFilter, customStartDate, customEndDate, searchTerm]);
+  }, [dateRange, categoryFilter, customStartDate, customEndDate, searchTerm, pageSize]);
 
   // Fetch when page or page size changes
   useEffect(() => {

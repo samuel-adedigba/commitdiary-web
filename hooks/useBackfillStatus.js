@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { apiClient } from "/lib/apiClient";
+import { isStalledBackfill } from "/lib/reports/backfillStatus";
 
 const MAX_ATTEMPTS = 120;
 const MAX_ERROR_ATTEMPTS = 10;
@@ -41,6 +42,7 @@ export function useBackfillStatus({
           const status = result.backfill?.status;
           if (
             !result.backfill ||
+            isStalledBackfill(result.backfill) ||
             status === "completed" ||
             status === "failed" ||
             status === "partial"
@@ -64,4 +66,3 @@ export function useBackfillStatus({
     return () => clearInterval(interval);
   }, [enabled, intervalMs, onBackfillUpdate, onTerminalState, repoIds]);
 }
-

@@ -1,5 +1,6 @@
 import { Button, ProgressBar, Spinner } from "react-bootstrap";
 import { AlertCircle, CheckCircle, RotateCw } from "react-feather";
+import { isActiveBackfill, isStalledBackfill } from "/lib/reports/backfillStatus";
 
 const BackfillProgress = ({ repo, pollingRepos, retryingRepos, onRetry }) => {
   const backfill = repo.backfill;
@@ -9,7 +10,44 @@ const BackfillProgress = ({ repo, pollingRepos, retryingRepos, onRetry }) => {
   const progress =
     totalCommits > 0 ? Math.round((completedCommits / totalCommits) * 100) : 0;
 
-  if (status === "processing" || status === "pending") {
+  if (isStalledBackfill(backfill)) {
+    const isRetrying = retryingRepos.has(String(repo.id));
+    return (
+      <div className="mt-2">
+        <div className="d-flex align-items-center justify-content-between">
+          <small className="text-warning d-flex align-items-center gap-1">
+            <AlertCircle size={12} />
+            Setup stalled
+          </small>
+          <Button
+            variant="outline-warning"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRetry(repo.id);
+            }}
+            disabled={isRetrying}
+            className="py-0 px-2"
+            style={{ fontSize: "0.75rem" }}
+          >
+            {isRetrying ? (
+              <Spinner animation="border" size="sm" />
+            ) : (
+              <>
+                <RotateCw size={10} className="me-1" />
+                Retry
+              </>
+            )}
+          </Button>
+        </div>
+        {backfill.errorMessage && (
+          <small className="text-muted d-block mt-1">{backfill.errorMessage}</small>
+        )}
+      </div>
+    );
+  }
+
+  if (isActiveBackfill(backfill)) {
     if (totalCommits === 0) {
       return (
         <div className="mt-2">
@@ -93,4 +131,3 @@ const BackfillProgress = ({ repo, pollingRepos, retryingRepos, onRetry }) => {
 };
 
 export default BackfillProgress;
-
