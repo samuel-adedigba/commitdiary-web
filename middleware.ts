@@ -1,13 +1,24 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+const ACCESS_COOKIE = 'cd_sb_access_token'
+const REFRESH_COOKIE = 'cd_sb_refresh_token'
+const EXPIRES_COOKIE = 'cd_sb_expires_at'
+const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || ''
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+
 /**
  * Middleware for security enhancements
  * - Generates CSRF tokens for state-changing operations
  * - Can be extended for rate limiting, bot detection, etc.
  */
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+  if ((request.nextUrl.pathname.startsWith('/v1') || request.nextUrl.pathname.startsWith('/s/')) && API_URL) {
+    return proxyApiRequest(request)
+  }
+
   const response = NextResponse.next()
 
   // Generate CSRF token if not present
@@ -27,6 +38,69 @@ export function middleware(request: NextRequest) {
   response.headers.set('X-Request-ID', generateSecureToken())
 
   return response
+}
+
+async function proxyApiRequest(request: NextRequest) {
+  const targetUrl = new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, API_URL)
+  const requestHeaders = new Headers(request.headers)
+
+  let accessToken = request.cookies.get(ACCESS_COOKIE)?.value
+  const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value
+  const expiresAt = Number(request.cookies.get(EXPIRES_COOKIE)?.value || 0)
+  let refreshedSession: any = null
+
+  if (refreshToken && (!accessToken || expiresAt - Math.floor(Date.now() / 1000) < 60)) {
+    refreshedSession = await refreshSession(refreshToken)
+    accessToken = refreshedSession?.access_token || accessToken
+  }
+
+  if (accessToken) {
+    requestHeaders.set('Authorization', `Bearer ${accessToken}`)
+  }
+
+  const response = NextResponse.rewrite(targetUrl, {
+    request: {
+      headers: requestHeaders,
+    },
+  })
+
+  if (refreshedSession) {
+    setAuthCookie(response, ACCESS_COOKIE, refreshedSession.access_token, refreshedSession.expires_in)
+    setAuthCookie(response, REFRESH_COOKIE, refreshedSession.refresh_token, 60 * 60 * 24 * 30)
+    setAuthCookie(response, EXPIRES_COOKIE, String(refreshedSession.expires_at || ''), refreshedSession.expires_in)
+  }
+
+  return response
+}
+
+async function refreshSession(refreshToken: string) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null
+
+  try {
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    })
+
+    if (!response.ok) return null
+    return response.json()
+  } catch {
+    return null
+  }
+}
+
+function setAuthCookie(response: NextResponse, name: string, value: string, maxAge?: number) {
+  response.cookies.set(name, value, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    ...(maxAge ? { maxAge } : {}),
+  })
 }
 
 /**
@@ -50,11 +124,12 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except:
+     * - api/auth (auth endpoints)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public files (public folder)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

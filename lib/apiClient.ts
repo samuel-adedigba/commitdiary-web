@@ -1,6 +1,4 @@
-import { supabase } from '/lib/supabaseClient'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+const API_URL = ''
 
 // Cache user data to avoid repeated auth calls
 let cachedUser: any = null
@@ -29,23 +27,15 @@ async function getCachedUser() {
         return cachedUser
     }
 
-    // Use getSession() instead of getUser() - it's faster and cached by Supabase
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session?.user) {
-        cachedUser = session.user
+    const response = await fetch('/api/auth/user', { cache: 'no-store' })
+    if (response.ok) {
+        const payload = await response.json()
+        cachedUser = payload.user ?? null
         lastUserFetch = now
     }
 
     return cachedUser
 }
-
-// Clear cache on auth state changes
-supabase.auth.onAuthStateChange((event) => {
-    if (event === 'SIGNED_OUT' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        cachedUser = null
-        lastUserFetch = 0
-    }
-})
 
 export interface Commit {
     id: string
@@ -93,28 +83,8 @@ export interface UserProfile {
 }
 
 async function getAuthToken(): Promise<string | null> {
-    // Force token refresh if expired to avoid 401 errors
-    const { data: { session }, error } = await supabase.auth.getSession()
-    
-    if (!session) {
-        return null
-    }
-    
-    // Check if token is expired or about to expire (within 60 seconds)
-    const expiresAt = session.expires_at ? session.expires_at * 1000 : 0
-    const now = Date.now()
-    const isExpiringSoon = expiresAt - now < 60000 // Less than 60 seconds remaining
-    
-    if (isExpiringSoon) {
-        const { data: { session: newSession }, error: refreshError } = await supabase.auth.refreshSession()
-        
-        if (refreshError || !newSession) {
-            return null
-        }
-        return newSession.access_token
-    }
-    
-    return session.access_token
+    const user = await getCachedUser()
+    return user ? 'cookie-authenticated' : null
 }
 
 export async function getCommits(params?: {
@@ -288,24 +258,25 @@ export async function getRepositories(): Promise<Repository[]> {
     const user = await getCachedUser()
     if (!user) throw new Error('User not found')
 
-    // Fetch repos directly from Supabase with commit counts
-    const { data, error } = await supabase
-        .from('repos')
-        .select('*, commits(count)')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
+    const response = await fetch(`${API_URL}/v1/repos/reports`, {
+        cache: 'no-store',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    })
 
-    if (error) {
-        throw new Error(`Failed to fetch repositories: ${error.message}`)
+    if (!response.ok) {
+        throw new Error(`Failed to fetch repositories: ${response.statusText}`)
     }
 
-    return (data || []).map((repo: any) => ({
+    const payload = await response.json()
+    return (payload.repos || []).map((repo: any) => ({
         id: repo.id,
         name: repo.name,
         remote: repo.remote,
         created_at: repo.created_at,
         updated_at: repo.updated_at,
-        commit_count: repo.commits?.[0]?.count || 0
+        commit_count: repo.commit_count || repo.total_commits || 0
     }))
 }
 
@@ -340,19 +311,23 @@ export async function getAllMetrics(timeRange: 'week' | 'month' | 'year' | 'all'
             startDate = new Date(0)
     }
 
-    // Fetch all commits in range directly from Supabase
-    const { data: commits, error } = await supabase
-        .from('commits')
-        .select('category, date, components')
-        .eq('user_id', user.id)
-        .gte('date', startDate.toISOString())
-        .order('date', { ascending: false })
+    const response = await fetch(`${API_URL}/v1/users/${user.id}/commits?${new URLSearchParams({
+        from: startDate.toISOString(),
+        limit: '500',
+        offset: '0',
+    })}`, {
+        cache: 'no-store',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    })
 
-    if (error) {
-        throw new Error(`Failed to fetch metrics: ${error.message}`)
+    if (!response.ok) {
+        throw new Error(`Failed to fetch metrics: ${response.statusText}`)
     }
 
-    const commitsList = commits || []
+    const payload = await response.json()
+    const commitsList = payload.commits || []
 
     // Calculate metrics
     const categoryMap: Record<string, number> = {}

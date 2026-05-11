@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation";
 
 // import hooks
 import useMounted from "hooks/useMounted";
-import { supabase } from "/lib/supabaseClient";
 
 const SignIn = () => {
   const hasMounted = useMounted();
@@ -34,12 +33,21 @@ const SignIn = () => {
     setError("");
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
+      const response = await fetch("/api/auth/password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({ error: "Sign in failed" }));
+        throw new Error(payload.error || "Sign in failed");
+      }
       
       // Give the auth state time to propagate
       setTimeout(() => {
@@ -55,39 +63,13 @@ const SignIn = () => {
   const handleGitHubSignIn = async () => {
     setLoading(true);
     setError("");
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "github",
-        options: {
-          redirectTo: `${window.location.origin}/`,
-        },
-      });
-
-      if (error) throw error;
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-    }
+    window.location.assign("/api/auth/oauth/github");
   };
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError("");
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/`,
-        },
-      });
-
-      if (error) throw error;
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-    }
+    window.location.assign("/api/auth/oauth/google");
   };
 
   return (

@@ -12,30 +12,20 @@ if (!supabaseUrl || !supabaseAnonKey) {
  * Supabase client with enhanced security configuration
  * 
  * Security features:
- * - Auto-refresh tokens before expiry
- * - Persistent sessions across page reloads
- * - Session detection from URL (for email confirmations)
- * - Local storage for session persistence (consider httpOnly cookies for production)
+ * Auth/session state is handled by server routes with httpOnly cookies.
+ * This browser client is kept only for non-auth Supabase features like Realtime.
  */
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // Automatically refresh tokens before they expire
-    autoRefreshToken: true,
+    autoRefreshToken: false,
     
-    // Persist session in localStorage (survives page reloads)
-    persistSession: true,
+    persistSession: false,
     
-    // Detect and handle session from URL hash (email confirmations, magic links)
-    detectSessionInUrl: true,
+    // PKCE callback page handles code exchange; do not auto-parse URL session fragments.
+    detectSessionInUrl: false,
     
-    // Storage configuration (currently localStorage)
-    // NOTE: For enhanced security in production, consider implementing httpOnly cookies
-    // See SECURITY_AUDIT.md for implementation details
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    
-    // Use implicit flow for SPAs (default for Supabase)
-    // Note: PKCE is more secure but requires additional Supabase project configuration
-    flowType: 'implicit',
+    // Use PKCE to avoid exposing access tokens in URL fragments.
+    flowType: 'pkce',
   },
   
   global: {
@@ -44,4 +34,3 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     },
   },
 });
-
