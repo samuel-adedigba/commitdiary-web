@@ -87,6 +87,6 @@ export default function AuthShell({ page, children }) {
 }
 
 AuthShell.propTypes = {
-  page: PropTypes.oneOf(["signIn", "signUp", "resetPassword"]).isRequired,
+  page: PropTypes.oneOf(["signIn", "signUp", "resetPassword", "newPassword"]).isRequired,
   children: PropTypes.node.isRequired,
 };

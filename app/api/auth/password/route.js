@@ -3,6 +3,7 @@ import {
   SUPABASE_ANON_KEY,
   SUPABASE_URL,
   clearSessionCookies,
+  enforceAuthRateLimit,
   fetchAuthProvider,
   setSessionCookies,
 } from "../_utils";
@@ -10,6 +11,9 @@ import {
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request) {
+  const rateLimitResponse = enforceAuthRateLimit(request, "password", 10, 15 * 60 * 1000);
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { email, password } = await request.json().catch(() => ({}));
 
   if (

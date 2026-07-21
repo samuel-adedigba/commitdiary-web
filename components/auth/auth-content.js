@@ -29,6 +29,15 @@ export const authPageContent = {
     formDescription:
       "Enter the email address linked to your account. We’ll send the next step there.",
   },
+  newPassword: {
+    eyebrow: "Account recovery",
+    storyTitle: "Get back to the record of what you built.",
+    storyDescription:
+      "Choose a new password, then continue working with the reports and repositories already in your journal.",
+    formEyebrow: "Secure your account",
+    formTitle: "Choose a new password",
+    formDescription: "Create a new password for your CommitDiary account.",
+  },
 };
 
 export const authHighlights = [

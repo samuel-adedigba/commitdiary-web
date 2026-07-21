@@ -1,0 +1,13 @@
+{
+    "title": "CommitDiary Web Dashboard",
+    "description": "A modern Next.js dashboard for commit analytics, AI reports, and Discord webhook management.",
+    "deployment": "https://app.commitdiary.dev",
+    "image": "https://raw.githubusercontent.com/samuel-adedigba/commitdiary-web/main/public/images/brand/commitdiary-og.png",
+    "technologies": [
+        "Next.js",
+        "React",
+        "TypeScript",
+        "Supabase",
+        "React Bootstrap"
+    ]
+}

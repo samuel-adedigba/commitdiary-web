@@ -3,7 +3,6 @@
 import { Button, Form } from "react-bootstrap";
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { FaGithub, FaGoogle } from "react-icons/fa";
 import AuthShell from "components/auth/AuthShell";
 import styles from "components/auth/auth.module.scss";
@@ -31,7 +30,6 @@ const oauthProviders = [
 ];
 
 const SignIn = () => {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
@@ -70,10 +68,8 @@ const SignIn = () => {
         throw new Error(payload.error || "We could not sign you in. Try again.");
       }
 
-      // Give the auth state time to propagate
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 500);
+      // Reload the app so AuthProvider starts with the newly issued HttpOnly session cookies.
+      window.location.assign("/dashboard");
     } catch (err) {
       setError(
         err instanceof Error
@@ -147,6 +143,7 @@ const SignIn = () => {
               required
               value={formData[field.id]}
               onChange={handleChange}
+              disabled={loading}
             />
           </Form.Group>
         ))}

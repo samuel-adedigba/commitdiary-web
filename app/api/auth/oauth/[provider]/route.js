@@ -1,10 +1,10 @@
-import crypto from "crypto";
 import { NextResponse } from "next/server";
 import {
   PKCE_VERIFIER_COOKIE,
+  RECOVERY_FLOW_COOKIE,
   SUPABASE_ANON_KEY,
   SUPABASE_URL,
-  base64UrlEncode,
+  createPkcePair,
   createCookieOptions,
   getSiteUrl,
 } from "../../_utils";
@@ -21,8 +21,7 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: "Missing Supabase auth configuration" }, { status: 500 });
   }
 
-  const verifier = base64UrlEncode(crypto.randomBytes(64));
-  const challenge = base64UrlEncode(crypto.createHash("sha256").update(verifier).digest());
+  const { verifier, challenge } = createPkcePair();
   const redirectTo = `${getSiteUrl(request)}/api/auth/callback`;
 
   const authorizeUrl = new URL(`${SUPABASE_URL}/auth/v1/authorize`);
@@ -33,5 +32,6 @@ export async function GET(request, { params }) {
 
   const response = NextResponse.redirect(authorizeUrl);
   response.cookies.set(PKCE_VERIFIER_COOKIE, verifier, createCookieOptions(60 * 10));
+  response.cookies.set(RECOVERY_FLOW_COOKIE, "", { ...createCookieOptions(0), maxAge: 0 });
   return response;
 }

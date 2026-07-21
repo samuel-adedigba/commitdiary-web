@@ -1,4 +1,3 @@
 export default function Loading() {
-    // You can add any UI inside Loading, including a Skeleton.
-    return <span>Loading</span>
-  }
+  return <span role="status">Loading account recovery…</span>;
+}

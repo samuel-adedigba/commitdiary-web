@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import {
   PKCE_VERIFIER_COOKIE,
+  RECOVERY_FLOW_COOKIE,
   SUPABASE_ANON_KEY,
   SUPABASE_URL,
+  clearRecoveryCookies,
   clearSessionCookies,
   fetchAuthProvider,
   getSiteUrl,
@@ -48,8 +50,16 @@ export async function GET(request) {
   }
 
   const session = await tokenResponse.json();
-  const response = NextResponse.redirect(new URL("/", getSiteUrl(request)));
+  if (!session.access_token || !session.refresh_token) {
+    const response = redirectWithAuthError(request, "oauth_exchange_failed");
+    clearSessionCookies(response);
+    return response;
+  }
+
+  const isRecovery = request.cookies.get(RECOVERY_FLOW_COOKIE)?.value === "1";
+  const destination = isRecovery ? "/authentication/reset-password" : "/dashboard";
+  const response = NextResponse.redirect(new URL(destination, getSiteUrl(request)));
   setSessionCookies(response, session);
-  response.cookies.set(PKCE_VERIFIER_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
+  clearRecoveryCookies(response);
   return response;
 }

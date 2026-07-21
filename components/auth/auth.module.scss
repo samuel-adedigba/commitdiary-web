@@ -352,11 +352,17 @@
 }
 
 .fieldHelp,
+.fieldError,
 .legalCopy {
   margin: 0.45rem 0 0;
   color: $cd-muted-dark;
   font-size: 0.72rem;
   line-height: 1.55;
+}
+
+.fieldError {
+  margin-top: 0.45rem;
+  color: #743534;
 }
 
 .legalCopy {
@@ -376,6 +382,25 @@
   color: #743534;
   font-size: 0.78rem;
   line-height: 1.55;
+}
+
+.successAlert {
+  padding: 1rem;
+  border: 1px solid rgba($cd-sage-dark, 0.3);
+  border-radius: 0.45rem;
+  background: rgba($cd-sage, 0.14);
+  color: $cd-ink-raised;
+  font-size: 0.82rem;
+  line-height: 1.55;
+
+  strong {
+    display: block;
+    margin-bottom: 0.35rem;
+  }
+
+  p {
+    margin: 0;
+  }
 }
 
 .primaryAction {
