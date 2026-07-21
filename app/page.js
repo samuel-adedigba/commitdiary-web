@@ -1,5 +1,5 @@
 import LandingPage from "../components/landing/LandingPage";
-import { siteConfig } from "../lib/siteConfig";
+import { siteConfig, socialImage } from "../lib/siteConfig";
 
 const siteUrl = siteConfig.siteUrl || undefined;
 
@@ -27,21 +27,14 @@ export const metadata = {
     title: "Turn Git history into clear engineering work reports",
     description:
       "A developer work journal that turns commits into useful standups, reviews, release notes, and proof of work.",
-    images: [
-      {
-        url: "/images/brand/commitdiary-og.png",
-        width: 1200,
-        height: 630,
-        alt: "CommitDiary turns Git activity into clear engineering reports",
-      },
-    ],
+    images: [socialImage],
   },
   twitter: {
     card: "summary_large_image",
     title: "CommitDiary | Your Git history, made readable",
     description:
       "Turn commits into useful engineering reports with a VS Code extension and reliable AI through Stepper.",
-    images: ["/images/brand/commitdiary-og.png"],
+    images: [socialImage.url],
   },
 };
 

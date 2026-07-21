@@ -1,5 +1,5 @@
 import { AuthProvider } from "../lib/auth-context";
-import { siteConfig } from "../lib/siteConfig";
+import { siteConfig, socialImage } from "../lib/siteConfig";
 // import theme style scss file
 import "styles/theme.scss";
 
@@ -20,6 +20,21 @@ export const metadata = {
     apple: "/images/brand/apple-touch-icon.png",
   },
   manifest: "/manifest.webmanifest",
+  openGraph: {
+    type: "website",
+    ...(siteConfig.siteUrl ? { url: siteConfig.siteUrl } : {}),
+    siteName: "CommitDiary",
+    title: "CommitDiary | Developer Work Journal",
+    description:
+      "Turn Git history into clear engineering work reports for standups, reviews, release notes, and portfolios.",
+    images: [socialImage],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CommitDiary | Developer Work Journal",
+    description: "Turn Git history into clear engineering work reports.",
+    images: [socialImage.url],
+  },
 };
 
 export default function RootLayout({ children }) {
