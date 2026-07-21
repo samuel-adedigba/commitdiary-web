@@ -21,7 +21,7 @@ CommitDiary does not need a full repository upload for basic reporting. Reports 
 
 ## Important links
 
-- Website: https://commitdiary-web.vercel.app
+- Website: https://commitdiary.dev
 - GitHub: https://github.com/samuel-adedigba/Commit-Diary-Vscode-Extension
 - VS Code Marketplace: https://marketplace.visualstudio.com/items?itemName=samuel-adedigba.commitdiary-extension
 - Stepper: https://github.com/samuel-adedigba/ai-inference-stepper

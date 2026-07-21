@@ -9,9 +9,21 @@ export const EXPIRES_COOKIE = "cd_sb_expires_at";
 export const PKCE_VERIFIER_COOKIE = "cd_pkce_verifier";
 
 const isProduction = process.env.NODE_ENV === "production";
+const AUTH_REQUEST_TIMEOUT_MS = 10_000;
+
+export async function fetchAuthProvider(url, options = {}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), AUTH_REQUEST_TIMEOUT_MS);
+
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 export function getSiteUrl(request) {
-  return process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin;
+  return process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
 }
 
 export function createCookieOptions(maxAge) {
@@ -37,7 +49,7 @@ export function clearSessionCookies(response) {
 }
 
 export function redirectWithAuthError(request, reason) {
-  const url = new URL("/authentication/sign-in", request.nextUrl.origin);
+  const url = new URL("/authentication/sign-in", getSiteUrl(request));
   url.searchParams.set("error", reason);
   return NextResponse.redirect(url);
 }

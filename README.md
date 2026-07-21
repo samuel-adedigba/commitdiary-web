@@ -50,7 +50,7 @@ Create `.env.local` file:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-NEXT_PUBLIC_API_URL=http://localhost:3001
+API_URL=http://localhost:3001
 ```
 
 ### 3️⃣ Start Development Server
@@ -149,14 +149,64 @@ Reports are delivered as Discord embeds with:
 
 ## 🚀 Deployment
 
-The dashboard can be easily deployed to Vercel or any other Next.js compatible hosting provider.
+The marketing site and authenticated product deploy as one Next.js application. Runtime middleware
+routes each configured host without embedding deployment URLs in source code:
+
+- `NEXT_PUBLIC_MARKETING_URL` serves the landing page at `/`.
+- `NEXT_PUBLIC_APP_URL` serves the product dashboard at `/` and owns authentication callbacks.
+- When either value is blank, local and generated preview URLs keep path-based routing (`/` for
+  marketing and `/dashboard` for the product).
+
+Set both values as absolute origins for every environment. For example, production can use the apex
+and app subdomain while staging uses its own two hostnames. Also add the app origin plus
+`/api/auth/callback` to the Supabase redirect URL allowlist.
+
+### Vercel setup
+
+Run these commands from the repository root. The CLI prompts for environment-variable values, which
+keeps secrets and environment-specific URLs out of shell history and source control.
+
+```bash
+pnpm dlx vercel link --cwd packages/web-dashboard
+pnpm dlx vercel env add NEXT_PUBLIC_MARKETING_URL production --cwd packages/web-dashboard
+pnpm dlx vercel env add NEXT_PUBLIC_APP_URL production --cwd packages/web-dashboard
+pnpm dlx vercel env add NEXT_PUBLIC_MARKETING_URL preview --cwd packages/web-dashboard
+pnpm dlx vercel env add NEXT_PUBLIC_APP_URL preview --cwd packages/web-dashboard
+pnpm dlx vercel env add NEXT_PUBLIC_SUPABASE_URL production --cwd packages/web-dashboard
+pnpm dlx vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production --cwd packages/web-dashboard
+pnpm dlx vercel env add API_URL production --cwd packages/web-dashboard
+pnpm dlx vercel env add NEXT_PUBLIC_GITHUB_URL production --cwd packages/web-dashboard
+pnpm dlx vercel env add NEXT_PUBLIC_MARKETPLACE_URL production --cwd packages/web-dashboard
+pnpm dlx vercel env add NEXT_PUBLIC_STEPPER_URL production --cwd packages/web-dashboard
+pnpm dlx vercel env add NEXT_PUBLIC_DOCS_URL production --cwd packages/web-dashboard
+pnpm dlx vercel env add NEXT_PUBLIC_DISCORD_DOCS_URL production --cwd packages/web-dashboard
+```
+
+Attach both production domains to the same linked Vercel project, replacing `<project-name>` with the
+project selected during `vercel link`:
+
+```bash
+pnpm dlx vercel domains add commitdiary.dev <project-name>
+pnpm dlx vercel domains add app.commitdiary.dev <project-name>
+```
+
+Create a preview deployment or deploy to production:
+
+```bash
+pnpm --filter @commitdiary/web-dashboard deploy:preview
+pnpm --filter @commitdiary/web-dashboard deploy:production
+```
+
+Vercel Pro and Enterprise projects can use a dedicated custom `staging` environment instead of
+Preview. Configure its two URL variables with `vercel env add <name> staging`, then deploy with
+`pnpm dlx vercel deploy --target=staging --cwd packages/web-dashboard`.
 
 ---
 
 ## 🤝 Contributing
 
 1. Follow Getting Started above
-2. Ensure NEXT_PUBLIC_API_URL points at a local API
+2. Ensure API_URL points at a local API
 3. Run pnpm dev and verify key flows: auth, commits, reports, webhooks
 4. Submit PRs via the monorepo
 

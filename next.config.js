@@ -2,7 +2,6 @@
 
 // Determine allowed API URLs based on environment
 const isDevelopment = process.env.NODE_ENV === "development";
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
 // Security headers to protect against common web vulnerabilities
 const securityHeaders = [
@@ -17,8 +16,8 @@ const securityHeaders = [
       "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com",
       // Allow API calls to Supabase and your API server (http/https + WebSocket)
       isDevelopment
-        ? `connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in ${apiUrl} http://localhost:* ws://localhost:*`
-        : `connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in ${apiUrl}`,
+        ? "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in http://localhost:* ws://localhost:*"
+        : "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in",
       "frame-ancestors 'none'", // Prevent clickjacking
       "base-uri 'self'",
       "form-action 'self'",

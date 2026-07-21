@@ -4,6 +4,8 @@ import {
   SUPABASE_ANON_KEY,
   SUPABASE_URL,
   clearSessionCookies,
+  fetchAuthProvider,
+  getSiteUrl,
   redirectWithAuthError,
   setSessionCookies,
 } from "../_utils";
@@ -16,17 +18,28 @@ export async function GET(request) {
     return redirectWithAuthError(request, "missing_oauth_code");
   }
 
-  const tokenResponse = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=pkce`, {
-    method: "POST",
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      auth_code: code,
-      code_verifier: verifier,
-    }),
-  });
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return redirectWithAuthError(request, "authentication_not_configured");
+  }
+
+  let tokenResponse;
+  try {
+    tokenResponse = await fetchAuthProvider(`${SUPABASE_URL}/auth/v1/token?grant_type=pkce`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        auth_code: code,
+        code_verifier: verifier,
+      }),
+    });
+  } catch {
+    const response = redirectWithAuthError(request, "authentication_service_unavailable");
+    clearSessionCookies(response);
+    return response;
+  }
 
   if (!tokenResponse.ok) {
     const response = redirectWithAuthError(request, "oauth_exchange_failed");
@@ -35,7 +48,7 @@ export async function GET(request) {
   }
 
   const session = await tokenResponse.json();
-  const response = NextResponse.redirect(new URL("/", request.nextUrl.origin));
+  const response = NextResponse.redirect(new URL("/", getSiteUrl(request)));
   setSessionCookies(response, session);
   response.cookies.set(PKCE_VERIFIER_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
   return response;

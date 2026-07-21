@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { resolveDomainRoute } from './lib/domainRouting'
 
 const ACCESS_COOKIE = 'cd_sb_access_token'
 const REFRESH_COOKIE = 'cd_sb_refresh_token'
 const EXPIRES_COOKIE = 'cd_sb_expires_at'
-const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || ''
+const API_URL = process.env.API_URL || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+const MARKETING_URL = process.env.NEXT_PUBLIC_MARKETING_URL || ''
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || ''
 
 /**
  * Middleware for security enhancements
@@ -19,7 +22,13 @@ export async function middleware(request: NextRequest) {
     return proxyApiRequest(request)
   }
 
-  const response = NextResponse.next()
+  const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim()
+  const route = resolveDomainRoute(
+    request.nextUrl,
+    forwardedHost || request.headers.get('host') || request.nextUrl.host,
+    { marketingUrl: MARKETING_URL, appUrl: APP_URL },
+  )
+  const response = createRouteResponse(request, route)
 
   // Generate CSRF token if not present
   if (!request.cookies.get('csrf-token')) {
@@ -40,6 +49,20 @@ export async function middleware(request: NextRequest) {
   return response
 }
 
+function createRouteResponse(request: NextRequest, route: ReturnType<typeof resolveDomainRoute>) {
+  switch (route.action) {
+    case 'redirect':
+      return NextResponse.redirect(route.url, 308)
+    case 'rewrite': {
+      const destination = request.nextUrl.clone()
+      destination.pathname = route.pathname
+      return NextResponse.rewrite(destination)
+    }
+    default:
+      return NextResponse.next()
+  }
+}
+
 async function proxyApiRequest(request: NextRequest) {
   const targetUrl = new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, API_URL)
   const requestHeaders = new Headers(request.headers)
@@ -47,7 +70,7 @@ async function proxyApiRequest(request: NextRequest) {
   let accessToken = request.cookies.get(ACCESS_COOKIE)?.value
   const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value
   const expiresAt = Number(request.cookies.get(EXPIRES_COOKIE)?.value || 0)
-  let refreshedSession: any = null
+  let refreshedSession: Awaited<ReturnType<typeof refreshSession>> = null
 
   if (refreshToken && (!accessToken || expiresAt - Math.floor(Date.now() / 1000) < 60)) {
     refreshedSession = await refreshSession(refreshToken)
@@ -107,16 +130,11 @@ function setAuthCookie(response: NextResponse, name: string, value: string, maxA
  * Generate a cryptographically secure random token
  */
 function generateSecureToken(): string {
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    const buffer = new Uint8Array(32)
-    crypto.getRandomValues(buffer)
-    return Array.from(buffer)
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('')
-  }
-  
-  // Fallback for environments without crypto.getRandomValues
-  return Math.random().toString(36).substring(2) + Date.now().toString(36)
+  const buffer = new Uint8Array(32)
+  crypto.getRandomValues(buffer)
+  return Array.from(buffer)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
 }
 
 // Configure which routes the middleware runs on

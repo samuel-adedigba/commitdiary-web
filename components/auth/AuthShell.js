@@ -32,7 +32,9 @@ export default function AuthShell({ page, children }) {
 
           <div className={styles.storyCopy}>
             <p className={styles.eyebrow}>{content.eyebrow}</p>
-            <h2 id={`${page}-story-title`}>{content.storyTitle}</h2>
+            <p className={styles.storyTitle} id={`${page}-story-title`}>
+              {content.storyTitle}
+            </p>
             <p>{content.storyDescription}</p>
           </div>
 
@@ -52,7 +54,7 @@ export default function AuthShell({ page, children }) {
         </div>
       </section>
 
-      <main className={styles.formPanel} id="auth-form">
+      <main className={styles.formPanel} id="auth-form" tabIndex={-1}>
         <div className={styles.formWrap}>
           <div className={styles.formTopline}>
             <Link href="/" className={styles.backLink}>

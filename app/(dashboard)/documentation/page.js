@@ -34,7 +34,7 @@ const Documentation = () => {
 
   const badgeMarkdown = siteConfig.siteUrl
     ? `[![CommitDiary](${siteConfig.siteUrl}/api/badge/YOUR_USERNAME/YOUR_SHARE_TOKEN)](${siteConfig.siteUrl}/s/YOUR_USERNAME/YOUR_SHARE_TOKEN)`
-    : "Set NEXT_PUBLIC_SITE_URL to generate a shareable badge snippet.";
+    : "Set NEXT_PUBLIC_MARKETING_URL to generate a shareable badge snippet.";
 
   return (
     <Fragment>

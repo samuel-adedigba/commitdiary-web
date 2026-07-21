@@ -98,7 +98,11 @@ const SignIn = () => {
         </div>
       ) : null}
 
-      <div className={styles.providerGrid} aria-label="Social sign-in options">
+      <div
+        className={styles.providerGrid}
+        role="group"
+        aria-label="Social sign-in options"
+      >
         {oauthProviders.map(({ id, label, Icon }) => (
           <button
             key={id}
