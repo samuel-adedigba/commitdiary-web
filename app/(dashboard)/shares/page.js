@@ -1,5 +1,6 @@
 "use client";
 import { Fragment, useEffect, useState } from "react";
+import NextImage from "next/image";
 import {
   Container,
   Col,
@@ -21,7 +22,7 @@ import {
   GitBranch,
   Eye,
   ExternalLink,
-  Image,
+  Image as ImageIcon,
 } from "react-feather";
 import { apiClient } from "/lib/apiClient";
 import { DataTable } from "components/DataTable";
@@ -603,7 +604,7 @@ const SharesPage = () => {
                     variant="outline-secondary"
                     onClick={() => handleCopyLink(getBadgeUrl(previewShare))}
                   >
-                    <Image size={16} className="me-2" />
+                    <ImageIcon size={16} className="me-2" aria-hidden="true" />
                     Copy Badge URL
                   </Button>
                 )}
@@ -613,9 +614,12 @@ const SharesPage = () => {
                 <Card>
                   <Card.Header className="py-2">SVG Badge (Full Width Preview)</Card.Header>
                   <Card.Body>
-                    <img
+                    <NextImage
                       src={`${getBadgeUrl(previewShare)}?v=${previewVersion}`}
                       alt="Share badge preview"
+                      width={1480}
+                      height={1960}
+                      unoptimized
                       style={{ width: "100%", height: "auto", borderRadius: 8 }}
                     />
                   </Card.Body>

@@ -12,7 +12,7 @@ import {
 const ALLOWED_PROVIDERS = new Set(["github", "google"]);
 
 export async function GET(request, { params }) {
-  const provider = params?.provider;
+  const { provider } = await params;
   if (!ALLOWED_PROVIDERS.has(provider)) {
     return NextResponse.json({ error: "Unsupported OAuth provider" }, { status: 400 });
   }

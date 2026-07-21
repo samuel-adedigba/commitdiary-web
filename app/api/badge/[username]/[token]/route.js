@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET(request, { params }) {
-  const { username, token } = params;
+  const { username, token } = await params;
 
   try {
     // Fetch data with a larger limit to ensure we have enough for charts
