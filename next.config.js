@@ -2,7 +2,7 @@
 
 // Determine allowed API URLs based on environment
 const isDevelopment = process.env.NODE_ENV === "development";
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
 // Security headers to protect against common web vulnerabilities
 const securityHeaders = [

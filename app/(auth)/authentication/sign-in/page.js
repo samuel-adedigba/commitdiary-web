@@ -51,7 +51,7 @@ const SignIn = () => {
       
       // Give the auth state time to propagate
       setTimeout(() => {
-        router.push("/");
+        router.push("/dashboard");
       }, 500);
       
     } catch (err) {
@@ -85,7 +85,7 @@ const SignIn = () => {
                 className="d-flex align-items-center mb-4 text-decoration-none gap-3"
               >
                 <NextImage
-                  src="/images/logo.png"
+                  src="/images/brand/commitdiary-mark.png"
                   alt="CommitDiary Logo"
                   width={60}
                   height={60}

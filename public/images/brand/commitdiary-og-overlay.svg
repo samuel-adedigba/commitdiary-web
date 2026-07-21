@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="copyFade" x1="0" x2="1">
+      <stop offset="0" stop-color="#0c1110" stop-opacity=".76"/>
+      <stop offset=".72" stop-color="#0c1110" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#0c1110" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="780" height="630" fill="url(#copyFade)"/>
+
+  <g transform="translate(70 62) scale(.875)">
+    <rect x="1" y="1" width="62" height="62" rx="15" fill="#121817"/>
+    <rect x="1.75" y="1.75" width="60.5" height="60.5" rx="14.25" fill="none" stroke="#9dbdae" stroke-opacity=".55" stroke-width="1.5"/>
+    <path d="M46 16H26c-6.075 0-11 4.925-11 11v10c0 6.075 4.925 11 11 11h20" fill="none" stroke="#eef0e8" stroke-linecap="round" stroke-linejoin="round" stroke-width="5"/>
+    <path d="M28 24.5v15h6.5c5.247 0 9.5-3.358 9.5-7.5s-4.253-7.5-9.5-7.5H28Z" fill="none" stroke="#9dbdae" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+    <circle cx="28" cy="24.5" r="3" fill="#c8a96f" stroke="#121817" stroke-width="1.5"/>
+    <circle cx="28" cy="39.5" r="3" fill="#9dbdae" stroke="#121817" stroke-width="1.5"/>
+    <circle cx="44" cy="32" r="3" fill="#eef0e8" stroke="#121817" stroke-width="1.5"/>
+  </g>
+
+  <text x="140" y="91" fill="#eef0e8" font-family="Inter, DejaVu Sans, sans-serif" font-size="27" font-weight="700" letter-spacing="-.6">CommitDiary</text>
+  <text x="141" y="113" fill="#9da8a3" font-family="DejaVu Sans Mono, monospace" font-size="10" letter-spacing="1.15">WORK JOURNAL FOR DEVELOPERS</text>
+
+  <text x="70" y="188" fill="#9dbdae" font-family="DejaVu Sans Mono, monospace" font-size="14" font-weight="700" letter-spacing="2.2">GIT HISTORY → CLEAR CONTEXT</text>
+  <text x="66" y="260" fill="#f7f8f2" font-family="Inter, DejaVu Sans, sans-serif" font-size="52" font-weight="500" letter-spacing="-2.2">
+    <tspan x="66" dy="0">Turn Git history into</tspan>
+    <tspan x="66" dy="61">clear engineering</tspan>
+    <tspan x="66" dy="61">work reports.</tspan>
+  </text>
+
+  <text x="70" y="472" fill="#aeb8b3" font-family="Inter, DejaVu Sans, sans-serif" font-size="17">
+    <tspan x="70" dy="0">From commits to standups, reviews, release notes,</tspan>
+    <tspan x="70" dy="27">and proof of work.</tspan>
+  </text>
+
+  <g transform="translate(70 551)" fill="#9da8a3" font-family="DejaVu Sans Mono, monospace" font-size="12" font-weight="700" letter-spacing=".5">
+    <text x="0" y="0">STANDUPS</text>
+    <circle cx="93" cy="-4" r="2" fill="#c8a96f"/>
+    <text x="108" y="0">SPRINT REVIEWS</text>
+    <circle cx="239" cy="-4" r="2" fill="#c8a96f"/>
+    <text x="254" y="0">RELEASE NOTES</text>
+    <circle cx="377" cy="-4" r="2" fill="#c8a96f"/>
+    <text x="392" y="0">PORTFOLIOS</text>
+  </g>
+</svg>

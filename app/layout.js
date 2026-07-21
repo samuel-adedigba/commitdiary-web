@@ -1,24 +1,25 @@
 import { AuthProvider } from "../lib/auth-context";
+import { siteConfig } from "../lib/siteConfig";
 // import theme style scss file
 import "styles/theme.scss";
 
 export const metadata = {
-  title: "Commit Diary - Insights into your code activity",
+  title: {
+    default: "CommitDiary | Developer Work Journal",
+    template: "%s · CommitDiary",
+  },
   description:
-    "Commit Diary is a professional dashboard for tracking, categorizing, and visualizing your git commit history.",
-  keywords: "commit-diary, git-analytics, developer-tools, commit-tracker",
-  metadataBase: new URL("https://commitdiary-web.vercel.app"),
+    "CommitDiary turns Git history into clear engineering work reports for developers and product teams.",
+  ...(siteConfig.siteUrl ? { metadataBase: new URL(siteConfig.siteUrl) } : {}),
   icons: {
-    icon: "/images/logo.png",
-    shortcut: "/images/logo.png",
-    apple: "/images/logo.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "64x64" },
+      { url: "/images/brand/commitdiary-mark-192.png", type: "image/png", sizes: "192x192" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/images/brand/apple-touch-icon.png",
   },
-  openGraph: {
-    title: "Commit Diary - Insights into your code activity",
-    description:
-      "Professional dashboard for tracking and visualizing your git commit history.",
-    images: ["/images/logo.png"],
-  },
+  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({ children }) {

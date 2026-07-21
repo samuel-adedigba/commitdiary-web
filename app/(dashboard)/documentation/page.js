@@ -22,6 +22,7 @@ import {
   CheckCircle,
 } from "react-feather";
 import { CopyToClipboard } from "react-copy-to-clipboard";
+import { siteConfig } from "../../../lib/siteConfig";
 
 const Documentation = () => {
   const [copied, setCopied] = useState(false);
@@ -31,7 +32,9 @@ const Documentation = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const badgeMarkdown = `[![CommitDiary](https://commitdiary-web.vercel.app/api/badge/YOUR_USERNAME/YOUR_SHARE_TOKEN)](https://commitdiary-web.vercel.app/s/YOUR_USERNAME/YOUR_SHARE_TOKEN)`;
+  const badgeMarkdown = siteConfig.siteUrl
+    ? `[![CommitDiary](${siteConfig.siteUrl}/api/badge/YOUR_USERNAME/YOUR_SHARE_TOKEN)](${siteConfig.siteUrl}/s/YOUR_USERNAME/YOUR_SHARE_TOKEN)`
+    : "Set NEXT_PUBLIC_SITE_URL to generate a shareable badge snippet.";
 
   return (
     <Fragment>
@@ -241,8 +244,8 @@ const Documentation = () => {
                             </p>
                             {/* Placeholder for visual representation */}
                             <Image
-                              src="https://img.shields.io/badge/CommitDiary-Stats_Loading...-blue?style=for-the-badge&logo=git"
-                              alt="Badge Preview"
+                              src="/images/brand/commitdiary-lockup.svg"
+                              alt="CommitDiary badge preview"
                               className="img-fluid"
                               style={{ height: "30px", width: "auto" }}
                               width={200}

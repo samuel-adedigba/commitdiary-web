@@ -1,0 +1,27 @@
+# CommitDiary
+
+CommitDiary is a developer work journal that turns Git history into clear, human-readable engineering reports.
+
+## What CommitDiary does
+
+- Discovers Git commits through a VS Code extension.
+- Stores a local journal of developer work.
+- Categorizes features, fixes, refactors, tests, documentation, and maintenance.
+- Identifies changed files and affected components.
+- Produces structured reports for standups, weekly updates, sprint reviews, retrospectives, release notes, and portfolios.
+- Supports offline queueing, authenticated cloud sync, Discord notifications, public reports, and activity badges.
+
+## Stepper
+
+CommitDiary uses Stepper as its AI reliability engine. Stepper handles provider routing, retries, backoff, rate limits, circuit breakers, schema validation, secret redaction, callbacks, caching, and structured output. Stepper is provider-flexible and is not itself an AI model vendor.
+
+## Privacy
+
+CommitDiary does not need a full repository upload for basic reporting. Reports use commit metadata, file paths, categories, components, and diff summaries. AI reports are assisted summaries and do not replace code review, testing, or engineering judgment.
+
+## Important links
+
+- Website: https://commitdiary-web.vercel.app
+- GitHub: https://github.com/samuel-adedigba/Commit-Diary-Vscode-Extension
+- VS Code Marketplace: https://marketplace.visualstudio.com/items?itemName=samuel-adedigba.commitdiary-extension
+- Stepper: https://github.com/samuel-adedigba/ai-inference-stepper

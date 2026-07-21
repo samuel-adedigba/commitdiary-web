@@ -48,9 +48,7 @@ const QuickMenu = () => {
       >
         <li className="dropdown stopevent me-2">
           <a
-            href="https://marketplace.visualstudio.com/items?itemName=samuel-adedigba.commitdiary-extension&ssr=false#overview"
-            target="_blank"
-            rel="noreferrer"
+            href="/marketplace"
             className="btn btn-light btn-icon rounded-circle indicator indicator-primary text-muted"
             title="VS Code Marketplace"
           >
@@ -161,9 +159,7 @@ const QuickMenu = () => {
       >
         <li className="dropdown stopevent me-2">
           <a
-            href="https://marketplace.visualstudio.com/items?itemName=samuel-adedigba.commitdiary-extension&ssr=false#overview"
-            target="_blank"
-            rel="noreferrer"
+            href="/marketplace"
             className="btn btn-light btn-icon rounded-circle indicator indicator-primary text-muted"
             title="VS Code Marketplace"
           >

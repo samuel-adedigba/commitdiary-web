@@ -28,7 +28,7 @@ export const DashboardMenu = [
     id: uuid(),
     title: "Dashboard",
     icon: "home",
-    link: "/",
+    link: "/dashboard",
   },
   {
     id: uuid(),

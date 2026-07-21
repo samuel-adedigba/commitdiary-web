@@ -23,9 +23,17 @@ yarn-error.log*
 .env
 .env.local
 .env.development
+.env.staging
 .env.production
 .env.test
 .env*.local
+
+# Keys and certificates
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
 
 # TypeScript
 *.tsbuildinfo

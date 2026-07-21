@@ -91,11 +91,11 @@ const NavbarVertical = (props) => {
       <SimpleBar style={{ maxHeight: "100vh" }}>
         <div className="nav-scroller">
           <Link
-            href="/"
+            href="/dashboard"
             className="navbar-brand d-flex align-items-center gap-2"
           >
             <Image
-              src="/images/logo.png"
+              src="/images/brand/commitdiary-mark.png"
               alt="CommitDiary Logo"
               width={50}
               height={50}
