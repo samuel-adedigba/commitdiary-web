@@ -1,17 +1,75 @@
-//
-// user-variables.scss
-// Use this to overwrite Bootstrap and Commit Diary variables
-//
-// Example of a variable override to change Commit Diary primary color
-// Remove the "//" to comment it in and see it in action!
-// $primary: #000;
+@import "brand-tokens";
 
-$font-family-sans-serif: "Poppins", sans-serif;
+$white: $cd-surface;
+$gray-100: $cd-paper;
+$gray-200: $cd-paper-deep;
+$gray-300: #cbd2ca;
+$gray-400: #aeb8b3;
+$gray-500: #7c8882;
+$gray-600: $cd-muted-dark;
+$gray-700: #3b4742;
+$gray-800: $cd-ink-raised;
+$gray-900: $cd-ink;
+$black: #070b0a;
+
+$primary: $cd-sage-dark;
+$secondary: $cd-muted-dark;
+$success: #3f745f;
+$info: #527b78;
+$warning: #a17e3f;
+$danger: $cd-danger;
+$light: $cd-paper;
+$dark: $cd-ink-soft;
+
+$light-primary: #dce8e2;
+$light-secondary: #e5e8e1;
+$light-success: #deebe2;
+$light-danger: #f2dfdc;
+$light-warning: #eee5d2;
+$light-info: #dce8e7;
+$light-dark: #d7dcd5;
+$dark-primary: $cd-sage-deep;
+$dark-secondary: #45524c;
+$dark-success: #2e5d49;
+$dark-danger: #803b3a;
+$dark-warning: #7d602e;
+$dark-info: #385f5c;
+
+$font-family-sans-serif: $cd-font-sans;
 $font-family-base: $font-family-sans-serif;
 $font-family-heading: $font-family-sans-serif;
 
-// Typography refinements
-$font-size-base: 0.95rem; // Slightly larger for Poppins
+$font-size-base: 0.9375rem;
 $font-weight-base: 400;
 $headings-font-weight: 600;
-$headings-color: #1e293b;
+$headings-color: $cd-ink-raised;
+
+$body-bg: $cd-paper;
+$body-color: #3b4742;
+$link-color: $cd-sage-dark;
+$link-hover-color: $cd-sage-deep;
+$border-color: #d4d9d1;
+$component-active-bg: $cd-sage-dark;
+$focus-ring-color: rgba($cd-amber, 0.42);
+
+$border-radius: 0.5rem;
+$border-radius-sm: 0.35rem;
+$border-radius-lg: 0.75rem;
+
+$input-bg: #fbfcf8;
+$input-color: $cd-ink-raised;
+$input-border-color: #cbd2ca;
+$input-placeholder-color: #7c8882;
+$input-focus-border-color: $cd-sage-dark;
+$input-focus-box-shadow: 0 0 0 0.2rem rgba($cd-sage, 0.28);
+$form-label-color: $cd-ink-raised;
+
+$card-bg: $cd-surface;
+$card-border-color: rgba($cd-ink-soft, 0.1);
+$card-cap-bg: transparent;
+$dropdown-bg: $cd-surface;
+$dropdown-border-color: rgba($cd-ink-soft, 0.12);
+
+$smooth-shadow-sm: 0 1px 2px rgba($cd-ink, 0.06), 0 8px 24px rgba($cd-ink, 0.04);
+$smooth-shadow-md: 0 1px 2px rgba($cd-ink, 0.06), 0 18px 50px rgba($cd-ink, 0.08);
+$smooth-shadow-lg: 0 24px 70px rgba($cd-ink, 0.16);

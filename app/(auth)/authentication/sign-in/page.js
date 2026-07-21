@@ -1,17 +1,36 @@
 "use client";
 
-// import node module libraries
-import { Row, Col, Card, Form, Button, Image, Alert } from "react-bootstrap";
+import { Button, Form } from "react-bootstrap";
 import Link from "next/link";
-import NextImage from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { FaGithub, FaGoogle } from "react-icons/fa";
+import AuthShell from "components/auth/AuthShell";
+import styles from "components/auth/auth.module.scss";
 
-// import hooks
-import useMounted from "hooks/useMounted";
+const signInFields = [
+  {
+    id: "email",
+    label: "Email address",
+    type: "email",
+    autoComplete: "email",
+    placeholder: "you@example.com",
+  },
+  {
+    id: "password",
+    label: "Password",
+    type: "password",
+    autoComplete: "current-password",
+    placeholder: "Enter your password",
+  },
+];
+
+const oauthProviders = [
+  { id: "github", label: "GitHub", Icon: FaGithub },
+  { id: "google", label: "Google", Icon: FaGoogle },
+];
 
 const SignIn = () => {
-  const hasMounted = useMounted();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -45,154 +64,104 @@ const SignIn = () => {
       });
 
       if (!response.ok) {
-        const payload = await response.json().catch(() => ({ error: "Sign in failed" }));
-        throw new Error(payload.error || "Sign in failed");
+        const payload = await response
+          .json()
+          .catch(() => ({ error: "We could not sign you in. Try again." }));
+        throw new Error(payload.error || "We could not sign you in. Try again.");
       }
-      
+
       // Give the auth state time to propagate
       setTimeout(() => {
         router.push("/dashboard");
       }, 500);
-      
     } catch (err) {
-      setError(err.message);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "We could not sign you in. Check your connection and try again.",
+      );
       setLoading(false);
     }
   };
 
-  const handleGitHubSignIn = async () => {
+  const handleOAuthSignIn = (provider) => {
     setLoading(true);
     setError("");
-    window.location.assign("/api/auth/oauth/github");
-  };
-
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    setError("");
-    window.location.assign("/api/auth/oauth/google");
+    window.location.assign(`/api/auth/oauth/${provider}`);
   };
 
   return (
-    <Row className="align-items-center justify-content-center g-0 min-vh-100">
-      <Col xxl={4} lg={6} md={8} xs={12} className="py-8 py-xl-0">
-        {/* Card */}
-        <Card className="smooth-shadow-md">
-          {/* Card body */}
-          <Card.Body className="p-6">
-            <div className="mb-4">
-              <Link
-                href="/"
-                className="d-flex align-items-center mb-4 text-decoration-none gap-3"
-              >
-                <NextImage
-                  src="/images/brand/commitdiary-mark.png"
-                  alt="CommitDiary Logo"
-                  width={60}
-                  height={60}
-                  style={{ objectFit: "contain" }}
-                />
-                <span className="h2 fw-bold mb-0 text-primary">
-                  CommitDiary
-                </span>
-              </Link>
-              <p className="mb-6">Sign in to access your commit analytics.</p>
+    <AuthShell page="signIn">
+      {error ? (
+        <div className={styles.errorAlert} role="alert">
+          {error}
+        </div>
+      ) : null}
+
+      <div className={styles.providerGrid} aria-label="Social sign-in options">
+        {oauthProviders.map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            type="button"
+            className={styles.providerButton}
+            onClick={() => handleOAuthSignIn(id)}
+            disabled={loading}
+          >
+            <Icon aria-hidden="true" />
+            Continue with {label}
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.divider}>or use email</div>
+
+      <Form
+        className={styles.form}
+        onSubmit={handleEmailSignIn}
+        aria-labelledby="signIn-form-title"
+        aria-busy={loading}
+      >
+        {signInFields.map((field) => (
+          <Form.Group key={field.id} controlId={field.id}>
+            <div className={styles.fieldLabelRow}>
+              <Form.Label>{field.label}</Form.Label>
+              {field.id === "password" ? (
+                <Link
+                  href="/authentication/forget-password"
+                  className={styles.fieldAction}
+                >
+                  Reset password
+                </Link>
+              ) : null}
             </div>
+            <Form.Control
+              className={styles.input}
+              type={field.type}
+              name={field.id}
+              autoComplete={field.autoComplete}
+              placeholder={field.placeholder}
+              required
+              value={formData[field.id]}
+              onChange={handleChange}
+            />
+          </Form.Group>
+        ))}
 
-            {error && (
-              <Alert variant="danger" dismissible onClose={() => setError("")}>
-                {error}
-              </Alert>
-            )}
+        <Button
+          className={styles.primaryAction}
+          variant="primary"
+          type="submit"
+          disabled={loading}
+        >
+          {loading ? "Signing in…" : "Sign in"}
+        </Button>
+      </Form>
 
-            {/* OAuth Buttons */}
-            <div className="mb-4">
-              <Button
-                variant="outline-dark"
-                className="w-100 mb-2"
-                onClick={handleGitHubSignIn}
-                disabled={loading}
-              >
-                Sign in with GitHub
-              </Button>
-              <Button
-                variant="outline-danger"
-                className="w-100"
-                onClick={handleGoogleSignIn}
-                disabled={loading}
-              >
-                Sign in with Google
-              </Button>
-            </div>
-
-            <div className="text-center my-4">
-              <span className="text-muted">or</span>
-            </div>
-
-            {/* Form */}
-            {hasMounted && (
-              <Form onSubmit={handleEmailSignIn}>
-                {/* Email */}
-                <Form.Group className="mb-3" controlId="email">
-                  <Form.Label>Email address</Form.Label>
-                  <Form.Control
-                    type="email"
-                    name="email"
-                    placeholder="Enter your email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-
-                {/* Password */}
-                <Form.Group className="mb-3" controlId="password">
-                  <Form.Label>Password</Form.Label>
-                  <Form.Control
-                    type="password"
-                    name="password"
-                    placeholder="**************"
-                    required
-                    value={formData.password}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-
-                {/* Checkbox */}
-                <div className="d-lg-flex justify-content-between align-items-center mb-4">
-                  <Form.Check type="checkbox" id="rememberme">
-                    <Form.Check.Input type="checkbox" />
-                    <Form.Check.Label>Remember me</Form.Check.Label>
-                  </Form.Check>
-                </div>
-                <div>
-                  {/* Button */}
-                  <div className="d-grid">
-                    <Button variant="primary" type="submit" disabled={loading}>
-                      {loading ? "Signing in..." : "Sign In"}
-                    </Button>
-                  </div>
-                  <div className="d-md-flex justify-content-between mt-4">
-                    <div className="mb-2 mb-md-0">
-                      <Link href="/authentication/sign-up" className="fs-5">
-                        Create An Account{" "}
-                      </Link>
-                    </div>
-                    <div>
-                      <Link
-                        href="/authentication/forget-password"
-                        className="text-inherit fs-5"
-                      >
-                        Forgot your password?
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </Form>
-            )}
-          </Card.Body>
-        </Card>
-      </Col>
-    </Row>
+      <p className={styles.switchPrompt}>
+        New to CommitDiary?{" "}
+        <Link href="/authentication/sign-up">Create an account</Link>
+      </p>
+    </AuthShell>
   );
 };
 

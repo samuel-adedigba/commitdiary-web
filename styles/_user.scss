@@ -1,32 +1,322 @@
-// 
-// user.scss
-// Use this to write your custom SCSS
-//
-
-html, body {
-    font-family: $font-family-base !important;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+:root {
+  --cd-ink: #{$cd-ink};
+  --cd-ink-soft: #{$cd-ink-soft};
+  --cd-ink-raised: #{$cd-ink-raised};
+  --cd-paper: #{$cd-paper};
+  --cd-paper-deep: #{$cd-paper-deep};
+  --cd-surface: #{$cd-surface};
+  --cd-muted: #{$cd-muted};
+  --cd-muted-dark: #{$cd-muted-dark};
+  --cd-sage: #{$cd-sage};
+  --cd-sage-dark: #{$cd-sage-dark};
+  --cd-sage-deep: #{$cd-sage-deep};
+  --cd-amber: #{$cd-amber};
+  --cd-danger: #{$cd-danger};
+  --cd-font-sans: #{$cd-font-sans};
+  --cd-font-mono: #{$cd-font-mono};
 }
 
-h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
-    font-family: $font-family-heading !important;
-    font-weight: $headings-font-weight;
+html,
+body {
+  background: $cd-paper;
+  color: $body-color;
+  font-family: $font-family-base !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-p, span, div, li, a {
-    font-family: $font-family-base;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.h1,
+.h2,
+.h3,
+.h4,
+.h5,
+.h6 {
+  color: $headings-color;
+  font-family: $font-family-heading !important;
+  font-weight: $headings-font-weight;
+  letter-spacing: -0.025em;
 }
 
-button, input, optgroup, select, textarea {
-    font-family: $font-family-base !important;
+p,
+span,
+div,
+li,
+a {
+  font-family: $font-family-base;
+}
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: $font-family-base !important;
+}
+
+a,
+button,
+input,
+select,
+textarea,
+summary {
+  &:focus-visible {
+    outline: 3px solid $cd-amber;
+    outline-offset: 3px;
+  }
 }
 
 .btn {
-    font-family: $font-family-base;
-    font-weight: 500;
+  border-radius: 0.45rem;
+  font-family: $font-family-base;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.btn-primary {
+  border-color: $cd-sage-dark;
+  background: $cd-sage-dark;
+
+  &:hover,
+  &:focus-visible {
+    border-color: $cd-sage-deep;
+    background: $cd-sage-deep;
+  }
+}
+
+.btn-white,
+.btn-light {
+  border-color: rgba($cd-ink-soft, 0.1);
+  background: $cd-surface;
+  color: $cd-ink-raised;
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgba($cd-sage-dark, 0.35);
+    background: #fff;
+    color: $cd-ink;
+  }
+}
+
+.form-label {
+  margin-bottom: 0.45rem;
+  color: $cd-ink-raised;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.form-control,
+.form-select {
+  min-height: 46px;
+  border-color: #cbd2ca;
+  background-color: #fbfcf8;
+  color: $cd-ink-raised;
+
+  &:hover {
+    border-color: #aeb8b3;
+  }
+}
+
+.form-check-input:checked {
+  border-color: $cd-sage-dark;
+  background-color: $cd-sage-dark;
 }
 
 .navbar-brand {
-    font-family: $font-family-heading !important;
+  font-family: $font-family-heading !important;
+}
+
+#db-wrapper,
+#page-content {
+  background: $cd-paper;
+}
+
+.header {
+  position: sticky;
+  z-index: 30;
+  top: 0;
+  border-bottom: 1px solid rgba($cd-ink-soft, 0.08);
+}
+
+.navbar-classic {
+  background: rgba($cd-surface, 0.94);
+  box-shadow: none;
+  backdrop-filter: blur(18px);
+
+  #nav-toggle {
+    color: $cd-ink-raised;
+  }
+
+  .form-control {
+    min-width: 220px;
+    border-color: transparent;
+    background: $cd-paper;
+  }
+}
+
+.nav-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: $cd-ink-raised;
+
+  &:hover {
+    background: rgba($cd-sage, 0.14);
+  }
+}
+
+.navbar-vertical {
+  border-right-color: rgba($cd-sage, 0.12);
+  background: $cd-ink;
+
+  .navbar-brand {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+
+    img {
+      width: 2.5rem;
+      height: 2.5rem;
+    }
+
+    span {
+      color: $cd-surface !important;
+      font-size: 1.15rem;
+      letter-spacing: -0.035em;
+    }
+  }
+
+  .navbar-heading {
+    color: #66716d;
+    font-family: $cd-font-mono;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+  }
+
+  .navbar-nav .nav-item .nav-link {
+    gap: 0.15rem;
+    margin: 0.1rem 0.75rem;
+    padding: 0.62rem 0.75rem;
+    border-radius: 0.45rem;
+    color: #9ca7a1;
+    font-size: 0.84rem;
+    line-height: 1.4;
+    transition: background 160ms ease, color 160ms ease;
+
+    .nav-icon {
+      color: $cd-sage;
+    }
+
+    &:hover {
+      background: rgba($cd-sage, 0.07);
+      color: $cd-surface;
+    }
+
+    &.active {
+      background: rgba($cd-sage, 0.13);
+      box-shadow: inset 2px 0 0 $cd-sage;
+      color: $cd-surface;
+    }
+  }
+}
+
+.dashboard-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba($cd-sage, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba($cd-sage, 0.045) 1px, transparent 1px),
+    radial-gradient(circle at 76% 10%, rgba($cd-sage-dark, 0.34), transparent 34%),
+    $cd-ink-soft;
+  background-size: 52px 52px, 52px 52px, auto, auto;
+
+  &::after {
+    position: absolute;
+    right: 6%;
+    bottom: -7rem;
+    width: 21rem;
+    height: 21rem;
+    border: 1px solid rgba($cd-sage, 0.1);
+    border-radius: 50%;
+    box-shadow: 0 0 0 3.5rem rgba($cd-sage, 0.025), 0 0 0 7rem rgba($cd-sage, 0.018);
+    content: "";
+  }
+}
+
+.card {
+  border: 1px solid rgba($cd-ink-soft, 0.09);
+  background: $cd-surface;
+  box-shadow: $smooth-shadow-sm;
+
+  .card-header {
+    border-bottom-color: rgba($cd-ink-soft, 0.08);
+    background: transparent;
+  }
+}
+
+.list-group-item {
+  border-color: rgba($cd-ink-soft, 0.08);
+  background: transparent;
+}
+
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-color: #{$body-color};
+  --bs-table-border-color: rgba(18, 24, 23, 0.08);
+  --bs-table-hover-bg: rgba(157, 189, 174, 0.09);
+
+  thead th {
+    color: $cd-muted-dark;
+    font-family: $cd-font-mono;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+}
+
+.dropdown-menu,
+.modal-content {
+  border: 1px solid rgba($cd-ink-soft, 0.1);
+  background: $cd-surface;
+  box-shadow: $smooth-shadow-md;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background: rgba($cd-sage, 0.12);
+  color: $cd-ink-raised;
+}
+
+.badge {
+  font-weight: 650;
+  letter-spacing: 0.015em;
+}
+
+.text-muted {
+  color: $cd-muted-dark !important;
+}
+
+.skeleton {
+  background-color: $cd-paper-deep;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

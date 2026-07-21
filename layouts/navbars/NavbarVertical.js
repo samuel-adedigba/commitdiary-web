@@ -2,7 +2,6 @@
 // import node module libraries
 import { Fragment, useContext } from "react";
 import Link from "next/link";
-import NextImage from "next/image";
 import { usePathname } from "next/navigation";
 import { useMediaQuery } from "react-responsive";
 import { ListGroup, Card, Image, Badge } from "react-bootstrap";
@@ -96,7 +95,8 @@ const NavbarVertical = (props) => {
           >
             <Image
               src="/images/brand/commitdiary-mark.png"
-              alt="CommitDiary Logo"
+              alt=""
+              aria-hidden="true"
               width={50}
               height={50}
               style={{ objectFit: "contain" }}
