@@ -267,7 +267,12 @@ function DataTable<T>(props: DataTableProps<T>) {
 
   return (
     <Loading loading={Boolean(loading && data.length !== 0)} type="cover">
-      <div className="overflow-auto">
+      <div
+        className="overflow-auto"
+        role="region"
+        aria-label="Scrollable data table"
+        tabIndex={0}
+      >
         <Table {...rest}>
           <THead>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -355,14 +360,14 @@ function DataTable<T>(props: DataTableProps<T>) {
           )}
         </Table>
       </div>
-      <div className="d-flex align-items-center justify-content-between mt-4">
+      <div className="data-table-footer d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center justify-content-between gap-3 mt-4">
         <Pagination
           pageSize={pageSize}
           currentPage={pageIndex}
           total={total}
           onChange={handlePaginationChange}
         />
-        <div style={{ minWidth: 130 }}>
+        <div className="data-table-page-size">
           <Select
             instanceId={instanceId}
             size="sm"

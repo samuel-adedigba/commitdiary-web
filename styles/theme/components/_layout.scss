@@ -37,6 +37,8 @@
   #db-wrapper {
     overflow-x: hidden;
     display: flex;
+    position: relative;
+    min-height: 100vh;
   }
 
 
@@ -45,8 +47,9 @@
 
   #page-content {
     min-height: 100vh;
-    min-width: 100vw;
-    margin-left: 15.625rem;
+    min-width: 0;
+    width: 100%;
+    margin-left: 0;
     -webkit-transition: margin 0.25s ease-out;
     -moz-transition: margin 0.25s ease-out;
     -o-transition: margin 0.25s ease-out;
@@ -56,31 +59,33 @@
 
 
 
-  // Dashboard navbar vertical toggled
-
-  #db-wrapper.toggled .navbar-vertical {
-    margin-left: 0;
+  #db-wrapper.mobile-menu-open .navbar-vertical {
+    visibility: visible;
+    transform: translateX(0);
+    box-shadow: 1rem 0 2.5rem rgba($black, 0.24);
+    pointer-events: auto;
   }
 
-
-
-  // Dashboard page content toggled
-
-  #db-wrapper.toggled #page-content {
-    margin-left: 0;
-  }
-
-  #db-wrapper.toggled #page-content .inner-wrapper-sticky {
+  #db-wrapper.desktop-sidebar-collapsed #page-content .inner-wrapper-sticky {
    left:20px !important;
   }
 
-  #db-wrapper.toggled #page-content .inner-wrapper-sticky .setting-nav {
+  #db-wrapper.desktop-sidebar-collapsed #page-content .inner-wrapper-sticky .setting-nav {
 
       width: 354px;
 
       @media(max-width: 1024px){
         width: 204px;
       }
+  }
+
+  .dashboard-nav-backdrop {
+    position: fixed;
+    z-index: 1040;
+    inset: 0;
+    padding: 0;
+    border: 0;
+    background: rgba($black, 0.48);
   }
 
 
@@ -92,24 +97,32 @@
       margin-left: 0rem;
     }
 
-    #db-wrapper.toggled {
-      #page-content {
-        margin-left: 0rem;
-      }
+    .dashboard-main-content > .container-fluid {
+      padding-right: 0.875rem !important;
+      padding-left: 0.875rem !important;
     }
   }
 
 
   @media (min-width: 768px) {
     .navbar-vertical {
-      margin-left: 0rem;
+      visibility: visible;
+      width: 15.625rem;
+      transform: translateX(0);
+      pointer-events: auto;
     }
     #page-content {
       min-width: 0rem;
       width: 100%;
+      margin-left: 15.625rem;
     }
-    #db-wrapper.toggled .navbar-vertical {
-      margin-left: -16rem;
+    #db-wrapper.desktop-sidebar-collapsed .navbar-vertical {
+      visibility: hidden;
+      transform: translateX(-100%);
+      pointer-events: none;
+    }
+    #db-wrapper.desktop-sidebar-collapsed #page-content {
+      margin-left: 0;
     }
   }
 
@@ -118,11 +131,14 @@
     #page-content {
       margin-left: 0rem;
     }
-    #db-wrapper.toggled {
-      #page-content {
-        margin-left: 0rem;
-      }
+    .dashboard-main-content > .container-fluid {
+      padding-right: 1.25rem !important;
+      padding-left: 1.25rem !important;
     }
+  }
+
+  .dashboard-main-content {
+    min-width: 0;
   }
 
 

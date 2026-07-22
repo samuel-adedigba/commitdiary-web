@@ -3,8 +3,8 @@
 import { Fragment, useContext } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMediaQuery } from "react-responsive";
 import { ListGroup, Card, Image, Badge } from "react-bootstrap";
+import { X } from "react-feather";
 import Accordion from "react-bootstrap/Accordion";
 import AccordionContext from "react-bootstrap/AccordionContext";
 import { useAccordionButton } from "react-bootstrap/AccordionButton";
@@ -63,9 +63,8 @@ const NavbarVertical = (props) => {
       <Link
         href={item.link}
         className={`nav-link ${location === item.link ? "active" : ""}`}
-        onClick={(e) =>
-          isMobile ? props.onClick(!props.showMenu) : props.showMenu
-        }
+        aria-current={location === item.link ? "page" : undefined}
+        onClick={props.onNavigate}
       >
         {item.name}
         {""}
@@ -83,15 +82,14 @@ const NavbarVertical = (props) => {
     );
   };
 
-  const isMobile = useMediaQuery({ maxWidth: 767 });
-
   return (
     <Fragment>
-      <SimpleBar style={{ maxHeight: "100vh" }}>
-        <div className="nav-scroller">
+      <SimpleBar className="dashboard-nav-scroll" style={{ height: "100dvh" }}>
+        <div className="nav-scroller d-flex align-items-center justify-content-between">
           <Link
             href="/dashboard"
             className="navbar-brand d-flex align-items-center gap-2"
+            onClick={props.onNavigate}
           >
             <Image
               src="/images/brand/commitdiary-mark.png"
@@ -103,6 +101,14 @@ const NavbarVertical = (props) => {
             />
             <span className="h3 fw-bold mb-0 text-white">CommitDiary</span>
           </Link>
+          <button
+            type="button"
+            className="nav-icon-button dashboard-nav-close d-md-none"
+            aria-label="Close dashboard navigation"
+            onClick={props.onClose}
+          >
+            <X size={20} aria-hidden="true" />
+          </button>
         </div>
         {/* Dashboard Menu */}
         <Accordion
@@ -312,9 +318,11 @@ const NavbarVertical = (props) => {
                       } ${
                         menu.title === "Download" ? "bg-primary text-white" : ""
                       }`}
+                      aria-current={location === menu.link ? "page" : undefined}
+                      onClick={props.onNavigate}
                     >
                       {typeof menu.icon === "string" ? (
-                        <i className={`nav-icon fe fe-${menu.icon} me-2`}></i>
+                        <i className={`nav-icon fe fe-${menu.icon} me-2`} aria-hidden="true"></i>
                       ) : (
                         menu.icon
                       )}

@@ -4,7 +4,7 @@
 const isDevelopment = process.env.NODE_ENV === "development";
 
 // Security headers to protect against common web vulnerabilities
-const securityHeaders = [
+const createSecurityHeaders = ({ allowEmbedding = false } = {}) => [
   {
     key: "Content-Security-Policy",
     value: [
@@ -18,15 +18,14 @@ const securityHeaders = [
       isDevelopment
         ? "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in http://localhost:* ws://localhost:*"
         : "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in",
-      "frame-ancestors 'none'", // Prevent clickjacking
+      allowEmbedding ? "frame-ancestors https: http:" : "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
     ].join("; "),
   },
-  {
-    key: "X-Frame-Options",
-    value: "DENY", // Prevent site from being embedded in iframes
-  },
+  ...(!allowEmbedding
+    ? [{ key: "X-Frame-Options", value: "DENY" }]
+    : []),
   {
     key: "X-Content-Type-Options",
     value: "nosniff", // Prevent MIME-sniffing
@@ -52,9 +51,13 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // Apply security headers to all routes
-        source: "/:path*",
-        headers: securityHeaders,
+        // Embed routes intentionally allow HTTP(S) parents; all other routes deny framing.
+        source: "/embed/:path*",
+        headers: createSecurityHeaders({ allowEmbedding: true }),
+      },
+      {
+        source: "/:path((?!embed(?:/|$)).*)",
+        headers: createSecurityHeaders(),
       },
     ];
   },

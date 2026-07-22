@@ -1,135 +1,199 @@
 "use client";
-import { Fragment, useEffect, useState } from "react";
+
+import { Fragment, useState } from "react";
 import NextImage from "next/image";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
-  Container,
-  Col,
-  Row,
-  Card,
-  Button,
-  Modal,
-  Form,
-  Badge,
   Alert,
+  Badge,
+  Button,
+  Card,
+  Col,
+  Container,
+  Form,
+  Modal,
+  Row,
+  Spinner,
 } from "react-bootstrap";
 import {
-  Share2,
-  Plus,
-  Trash2,
+  Calendar,
   Copy,
   Download,
-  Calendar,
-  GitBranch,
-  Eye,
   ExternalLink,
+  Eye,
+  GitBranch,
   Image as ImageIcon,
+  Plus,
+  Share2,
+  Trash2,
 } from "react-feather";
 import { apiClient } from "/lib/apiClient";
+import { clearApiResourceCache, useApiResource } from "/hooks/useApiResource";
 import { DataTable } from "components/DataTable";
+import Select from "components/ui/Select";
+
+const PAGE_SIZES = [10, 25, 50];
+const EXPORT_FORMATS = [
+  { format: "md", label: "Markdown" },
+  { format: "csv", label: "CSV" },
+];
+
+const getPositiveInteger = (value, fallback) => {
+  const parsed = Number.parseInt(value || "", 10);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const isShareInactive = (share) => Boolean(
+  share?.revoked ||
+  (share?.expires_at && new Date(share.expires_at).getTime() < Date.now()),
+);
 
 const SharesPage = () => {
-  const [shares, setShares] = useState([]);
-  const [repositories, setRepositories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [previewShare, setPreviewShare] = useState(null);
-  const [previewVersion, setPreviewVersion] = useState(0);
-  const [createLoading, setCreateLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const page = getPositiveInteger(searchParams.get("page"), 1);
+  const pageSizeValue = getPositiveInteger(searchParams.get("limit"), 10);
+  const pageSize = PAGE_SIZES.includes(pageSizeValue) ? pageSizeValue : 10;
+  const sharesResource = useApiResource(`shares:${page}:${pageSize}`, () =>
+    apiClient.getShares({ page, limit: pageSize }),
+  );
+  const repositoriesResource = useApiResource("share-repositories", () =>
+    apiClient.getRepositories(),
+  );
 
-  // Form state
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [previewShare, setPreviewShare] = useState(null);
+  const [revokeShare, setRevokeShare] = useState(null);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [pendingAction, setPendingAction] = useState("");
+  const [feedback, setFeedback] = useState(null);
+  const [createError, setCreateError] = useState("");
+  const [revokeError, setRevokeError] = useState("");
+  const [badgeState, setBadgeState] = useState("idle");
+  const [badgeRetryKey, setBadgeRetryKey] = useState(0);
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [repositoryScope, setRepositoryScope] = useState("selected");
   const [selectedRepos, setSelectedRepos] = useState([]);
+  const [confirmAllRepositories, setConfirmAllRepositories] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [expiresInDays, setExpiresInDays] = useState("");
   const [live, setLive] = useState(false);
 
-  useEffect(() => {
-    fetchShares();
-    fetchRepositories();
-  }, []);
+  const shares = sharesResource.data?.shares || [];
+  const pagination = sharesResource.data?.pagination || {
+    total: 0,
+    page,
+    limit: pageSize,
+  };
+  const repositories = repositoriesResource.data || [];
+  const repositoryOptions = repositories.map((repository) => ({
+    value: repository.name,
+    label: repository.name,
+  }));
 
-  const fetchShares = async () => {
-    try {
-      setLoading(true);
-      const data = await apiClient.getShares();
-      setShares(data.shares || []);
-    } catch (error) {
-      setError("Failed to load shares");
-    } finally {
-      setLoading(false);
-    }
+  const updatePagination = (nextPage, nextPageSize = pageSize) => {
+    const query = new URLSearchParams(searchParams.toString());
+    query.set("page", String(nextPage));
+    query.set("limit", String(nextPageSize));
+    router.replace(`${pathname}?${query.toString()}`);
   };
 
-  const fetchRepositories = async () => {
-    try {
-      const data = await apiClient.getRepositories();
-      setRepositories(data || []);
-    } catch (error) {
-    }
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setRepositoryScope("selected");
+    setSelectedRepos([]);
+    setConfirmAllRepositories(false);
+    setDateFrom("");
+    setDateTo("");
+    setExpiresInDays("");
+    setLive(false);
+    setCreateError("");
   };
 
-  const handleCreateShare = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
+  const closeCreateModal = () => {
+    if (createLoading) return;
+    setShowCreateModal(false);
+    setCreateError("");
+  };
 
-    if (!title.trim()) {
-      setError("Title is required");
+  const handleCreateShare = async (event) => {
+    event.preventDefault();
+    if (createLoading) return;
+
+    setCreateError("");
+    const normalizedTitle = title.trim();
+    if (!normalizedTitle) {
+      setCreateError("Enter a title for this share.");
+      return;
+    }
+    if (dateFrom && dateTo && dateFrom > dateTo) {
+      setCreateError("The end date must be on or after the start date.");
+      return;
+    }
+    if (repositoriesResource.isLoading || repositoriesResource.error) {
+      setCreateError("Wait until your repositories are available before creating a share.");
+      return;
+    }
+    if (repositoryScope === "selected" && selectedRepos.length === 0) {
+      setCreateError("Select at least one repository, or explicitly choose all repositories.");
+      return;
+    }
+    if (repositoryScope === "all" && !confirmAllRepositories) {
+      setCreateError("Confirm that this share may include activity from every repository.");
+      return;
+    }
+    const expiryDays = expiresInDays ? Number(expiresInDays) : undefined;
+    if (
+      expiryDays !== undefined &&
+      (!Number.isSafeInteger(expiryDays) || expiryDays < 1 || expiryDays > 3650)
+    ) {
+      setCreateError("Expiry must be a whole number between 1 and 3650 days.");
       return;
     }
 
     try {
       setCreateLoading(true);
-      const params = {
-        title: title.trim(),
+      const result = await apiClient.createShare({
+        title: normalizedTitle,
         description: description.trim() || undefined,
-        repos: selectedRepos.length > 0 ? selectedRepos : undefined,
+        repos: repositoryScope === "selected" ? selectedRepos : undefined,
         from: dateFrom || undefined,
         to: dateTo || undefined,
-        expires_in_days: expiresInDays ? parseInt(expiresInDays) : undefined,
-        live: live,
-      };
+        expires_in_days: expiryDays,
+        live,
+      });
 
-      const result = await apiClient.createShare(params);
-
-      setSuccess(
-        `Share created! ${result.total_commits} commits from ${result.total_repos} repos`
-      );
-
-      // Reset form
-      setTitle("");
-      setDescription("");
-      setSelectedRepos([]);
-      setDateFrom("");
-      setDateTo("");
-      setDateTo("");
-      setExpiresInDays("");
-      setLive(false);
-
-      // Refresh shares list
-      await fetchShares();
-
-      // Close modal after a delay
-      setTimeout(() => {
-        setShowCreateModal(false);
-        setSuccess("");
-      }, 2000);
+      clearApiResourceCache("shares:");
+      resetForm();
+      setShowCreateModal(false);
+      setFeedback({ variant: "success", message: result.message });
     } catch (error) {
-      setError(error.message || "Failed to create share");
+      setCreateError(error.message);
     } finally {
       setCreateLoading(false);
     }
   };
 
-  const handleCopyLink = (url) => {
-    navigator.clipboard.writeText(url);
-    setSuccess("Link copied to clipboard!");
-    setTimeout(() => setSuccess(""), 2000);
+  const handleCopy = async (value, label) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setFeedback({ variant: "success", message: `${label} copied to your clipboard.` });
+    } catch {
+      setFeedback({
+        variant: "danger",
+        message: `We could not copy the ${label.toLowerCase()}. Copy it manually and try again.`,
+      });
+    }
+  };
+
+  const openExternal = (url) => {
+    const openedWindow = window.open(url, "_blank", "noopener,noreferrer");
+    if (openedWindow) openedWindow.opener = null;
   };
 
   const parseSharePath = (url) => {
@@ -137,58 +201,69 @@ const SharesPage = () => {
       const parsed = new URL(url);
       const parts = parsed.pathname.split("/").filter(Boolean);
       if (parts.length >= 3 && parts[0] === "s") {
-        return { username: parts[1], token: parts[2] };
+        return { origin: parsed.origin, username: parts[1], token: parts[2] };
       }
-      return null;
-    } catch (error) {
+    } catch {
       return null;
     }
+    return null;
   };
 
   const getBadgeUrl = (share) => {
-    const parts = parseSharePath(share.url);
-    if (!parts) return null;
-    return `${window.location.origin}/api/badge/${parts.username}/${parts.token}`;
+    if (isShareInactive(share)) return null;
+    const parts = parseSharePath(share?.url);
+    return parts
+      ? `${parts.origin}/api/badge/${parts.username}/${parts.token}`
+      : null;
   };
 
-  const handlePreviewShare = (share) => {
+  const openBadgePreview = (share) => {
+    setBadgeState(isShareInactive(share) ? "unavailable" : "loading");
+    setBadgeRetryKey(0);
     setPreviewShare(share);
-    setPreviewVersion(Date.now());
-    setShowPreviewModal(true);
   };
 
-  const handleRevoke = async (shareId) => {
-    if (
-      !confirm(
-        "Are you sure you want to revoke this share? The link will no longer work."
-      )
-    ) {
-      return;
-    }
+  const handleRevoke = async () => {
+    if (!revokeShare || pendingAction) return;
+    const actionKey = `${revokeShare.id}:revoke`;
 
     try {
-      await apiClient.revokeShare(shareId);
-      setSuccess("Share revoked successfully");
-      await fetchShares();
-      setTimeout(() => setSuccess(""), 2000);
+      setPendingAction(actionKey);
+      setRevokeError("");
+      const result = await apiClient.revokeShare(revokeShare.id);
+      const previousShareCount = shares.length;
+      setRevokeShare(null);
+      clearApiResourceCache("shares:");
+      if (previousShareCount === 1 && page > 1) updatePagination(page - 1);
+      setFeedback({ variant: "success", message: result.message });
     } catch (error) {
-      setError("Failed to revoke share");
+      setRevokeError(error.message);
+    } finally {
+      setPendingAction("");
     }
   };
 
-  const handleExport = async (shareId, format, title) => {
+  const handleExport = async (share, format) => {
+    const actionKey = `${share.id}:export-${format}`;
+    if (pendingAction) return;
+
     try {
-      const blob = await apiClient.exportShare(shareId, format);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${title.replace(/[^a-z0-9]/gi, "_")}.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      setPendingAction(actionKey);
+      const result = await apiClient.exportShare(share.id, format);
+      const downloadUrl = window.URL.createObjectURL(result.blob);
+      const anchor = document.createElement("a");
+      anchor.href = downloadUrl;
+      anchor.download =
+        result.filename || `${share.title.replace(/[^a-z0-9_-]+/gi, "_")}.${format}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+      setFeedback({ variant: "success", message: result.message });
     } catch (error) {
-      setError("Failed to export share");
+      setFeedback({ variant: "danger", message: error.message });
+    } finally {
+      setPendingAction("");
     }
   };
 
@@ -196,64 +271,42 @@ const SharesPage = () => {
     {
       accessorKey: "title",
       header: "Title",
+      enableSorting: false,
       cell: ({ row }) => (
         <div>
-          <div className="fw-semibold">{row.original.title}</div>
-          {row.original.description && (
-            <div className="text-muted small">{row.original.description}</div>
-          )}
+          <div className="fw-semibold text-break">{row.original.title}</div>
+          {row.original.description ? (
+            <div className="text-muted small text-break">{row.original.description}</div>
+          ) : null}
         </div>
       ),
     },
     {
       accessorKey: "scope",
       header: "Scope",
+      enableSorting: false,
       cell: ({ row }) => {
         const scope = row.original.scope || {};
         const hasRepoFilter = Array.isArray(scope.repos) && scope.repos.length > 0;
+        const dateLabel = scope.from && scope.to
+          ? `${new Date(scope.from).toLocaleDateString()} – ${new Date(scope.to).toLocaleDateString()}`
+          : scope.from
+            ? `From ${new Date(scope.from).toLocaleDateString()}`
+            : scope.to
+              ? `Until ${new Date(scope.to).toLocaleDateString()}`
+              : "All time";
+
         return (
-          <div className="small">
-            {scope.live && (
-              <div>
-                <Badge bg="info" className="me-2">Live</Badge>
-                Auto-refresh
-              </div>
-            )}
-            <div>
-              <GitBranch size={12} className="me-1" />
-              {hasRepoFilter ? `${scope.repos.length} selected repos` : "All repos"}
-            </div>
-            {hasRepoFilter && (
-              <div>
-                {scope.repos.slice(0, 2).join(", ")}
-                {scope.repos.length > 2 ? ` +${scope.repos.length - 2} more` : ""}
-              </div>
-            )}
-            {!scope.from && !scope.to && (
-              <div>
-                <Calendar size={12} className="me-1" />
-                All time
-              </div>
-            )}
-            {scope.from && scope.to && (
-              <div>
-                <Calendar size={12} className="me-1" />
-                {new Date(scope.from).toLocaleDateString()} -{" "}
-                {new Date(scope.to).toLocaleDateString()}
-              </div>
-            )}
-            {scope.from && !scope.to && (
-              <div>
-                <Calendar size={12} className="me-1" />
-                From {new Date(scope.from).toLocaleDateString()}
-              </div>
-            )}
-            {!scope.from && scope.to && (
-              <div>
-                <Calendar size={12} className="me-1" />
-                Until {new Date(scope.to).toLocaleDateString()}
-              </div>
-            )}
+          <div className="small d-flex flex-column gap-1">
+            {scope.live ? <Badge bg="info" className="align-self-start">Live</Badge> : null}
+            <span>
+              <GitBranch size={12} className="me-1" aria-hidden="true" />
+              {hasRepoFilter ? `${scope.repos.length} selected` : "All repositories"}
+            </span>
+            <span>
+              <Calendar size={12} className="me-1" aria-hidden="true" />
+              {dateLabel}
+            </span>
           </div>
         );
       },
@@ -261,47 +314,25 @@ const SharesPage = () => {
     {
       accessorKey: "total_commits",
       header: "Commits",
-      cell: ({ row }) => {
-        const share = row.original;
-        const totalCommits = Number(share.total_commits || 0);
-        const totalRepos = Number(share.total_repos || 0);
-        const scopeReposCount = Array.isArray(share.scope?.repos)
-          ? share.scope.repos.length
-          : 0;
-        const reposLabel =
-          totalRepos > 0
-            ? `${totalRepos} repos`
-            : scopeReposCount > 0
-              ? `${scopeReposCount} selected repos`
-              : "all repos";
-        const pendingSnapshot = totalCommits === 0 && !!share.scope?.live;
-
-        return (
-          <div>
-            <Badge bg={pendingSnapshot ? "warning" : "primary"}>
-              {pendingSnapshot ? "Syncing..." : totalCommits}
-            </Badge>
-            <span className="ms-2 text-muted small">{reposLabel}</span>
-          </div>
-        );
-      },
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div>
+          <Badge bg="primary">{Number(row.original.total_commits || 0)}</Badge>
+          <span className="ms-2 text-muted small">
+            {Number(row.original.total_repos || 0)} repositories
+          </span>
+        </div>
+      ),
     },
     {
       accessorKey: "status",
       header: "Status",
+      enableSorting: false,
       cell: ({ row }) => {
         const share = row.original;
-        if (share.revoked) {
-          return <Badge bg="danger">Revoked</Badge>;
-        }
+        if (share.revoked) return <Badge bg="danger">Revoked</Badge>;
         if (share.expires_at && new Date(share.expires_at) < new Date()) {
-          return <Badge bg="warning">Expired</Badge>;
-        }
-        if (share.expires_at) {
-          const daysLeft = Math.ceil(
-            (new Date(share.expires_at) - new Date()) / (1000 * 60 * 60 * 24)
-          );
-          return <Badge bg="success">Active ({daysLeft}d left)</Badge>;
+          return <Badge bg="warning" text="dark">Expired</Badge>;
         }
         return <Badge bg="success">Active</Badge>;
       },
@@ -309,325 +340,476 @@ const SharesPage = () => {
     {
       accessorKey: "created_at",
       header: "Created",
+      enableSorting: false,
       cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
     },
     {
-      accessorKey: "actions",
+      id: "actions",
       header: "Actions",
-      cell: ({ row }) => (
-        <div className="d-flex gap-2">
-          <Button
-            size="sm"
-            variant="outline-success"
-            onClick={() => window.open(row.original.url, "_blank")}
-            title="Open share page"
-          >
-            <ExternalLink size={14} />
-          </Button>
-          <Button
-            size="sm"
-            variant="outline-info"
-            onClick={() => handlePreviewShare(row.original)}
-            title="Preview share and badge"
-          >
-            <Eye size={14} />
-          </Button>
-          <Button
-            size="sm"
-            variant="outline-primary"
-            onClick={() => handleCopyLink(row.original.url)}
-            title="Copy link"
-          >
-            <Copy size={14} />
-          </Button>
-          <Button
-            size="sm"
-            variant="outline-secondary"
-            onClick={() =>
-              handleExport(row.original.id, "md", row.original.title)
-            }
-            title="Export as Markdown"
-          >
-            <Download size={14} />
-          </Button>
-          {!row.original.revoked && (
+      enableSorting: false,
+      cell: ({ row }) => {
+        const share = row.original;
+        return (
+          <div className="d-flex flex-wrap gap-2" aria-label={`Actions for ${share.title}`}>
             <Button
               size="sm"
-              variant="outline-danger"
-              onClick={() => handleRevoke(row.original.id)}
-              title="Revoke share"
+              variant="outline-success"
+              onClick={() => openExternal(share.url)}
+              aria-label={`Open ${share.title}`}
+              title="Open share page"
             >
-              <Trash2 size={14} />
+              <ExternalLink size={14} aria-hidden="true" />
             </Button>
-          )}
-        </div>
-      ),
+            <Button
+              size="sm"
+              variant="outline-info"
+              onClick={() => openBadgePreview(share)}
+              aria-label={`${isShareInactive(share) ? "Check badge availability for" : "Preview"} ${share.title}`}
+              title={isShareInactive(share) ? "Badge unavailable for inactive share" : "Preview share badge"}
+            >
+              <Eye size={14} aria-hidden="true" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline-primary"
+              onClick={() => handleCopy(share.url, "Share link")}
+              aria-label={`Copy link for ${share.title}`}
+              title="Copy share link"
+            >
+              <Copy size={14} aria-hidden="true" />
+            </Button>
+            {EXPORT_FORMATS.map(({ format, label }) => {
+              const actionKey = `${share.id}:export-${format}`;
+              return (
+                <Button
+                  key={format}
+                  size="sm"
+                  variant="outline-secondary"
+                  disabled={Boolean(pendingAction)}
+                  onClick={() => handleExport(share, format)}
+                  aria-label={`Export ${share.title} as ${label}`}
+                  title={`Export as ${label}`}
+                >
+                  {pendingAction === actionKey ? (
+                    <Spinner size="sm" animation="border" role="status" />
+                  ) : (
+                    <Download size={14} aria-hidden="true" />
+                  )}
+                  <span className="ms-1">{format.toUpperCase()}</span>
+                </Button>
+              );
+            })}
+            {!share.revoked ? (
+              <Button
+                size="sm"
+              variant="outline-danger"
+              disabled={Boolean(pendingAction)}
+                onClick={() => {
+                  setRevokeError("");
+                  setRevokeShare(share);
+                }}
+                aria-label={`Revoke ${share.title}`}
+                title="Revoke share"
+              >
+                <Trash2 size={14} aria-hidden="true" />
+              </Button>
+            ) : null}
+          </div>
+        );
+      },
     },
   ];
 
+  const pageError = sharesResource.error?.message;
+  const badgeUrl = getBadgeUrl(previewShare);
+
   return (
     <Fragment>
-      <Container fluid className="p-6">
-        {/* Header */}
+      <Container fluid className="p-4 p-lg-6">
         <Row>
-          <Col lg={12} md={12} xs={12}>
-            <div className="border-bottom pb-4 mb-4 d-flex align-items-center justify-content-between">
-              <div className="mb-2 mb-lg-0">
-                <h1 className="mb-1 h2 fw-bold">
-                  <Share2 size={28} className="me-2" />
-                  Shareable Links
+          <Col xs={12}>
+            <div className="dashboard-page-header border-bottom pb-4 mb-4">
+              <div>
+                <h1 className="mb-1 h2 fw-bold d-flex align-items-center">
+                  <Share2 size={28} className="me-2" aria-hidden="true" />
+                  Share links
                 </h1>
                 <p className="mb-0 text-muted">
-                  Create and manage public shareable commit diary links
+                  Create public, read-only views of selected commit activity.
                 </p>
               </div>
-              <div>
-                <Button
-                  variant="primary"
-                  onClick={() => setShowCreateModal(true)}
-                >
-                  <Plus size={18} className="me-2" />
-                  Create Share
-                </Button>
-              </div>
+              <Button className="dashboard-header-action" variant="primary" onClick={() => setShowCreateModal(true)}>
+                <Plus size={18} className="me-2" aria-hidden="true" />
+                Create share
+              </Button>
             </div>
           </Col>
         </Row>
 
-        {/* Alerts */}
-        {error && (
-          <Row>
-            <Col lg={12}>
-              <Alert variant="danger" dismissible onClose={() => setError("")}>
-                {error}
-              </Alert>
-            </Col>
-          </Row>
-        )}
-        {success && (
-          <Row>
-            <Col lg={12}>
-              <Alert
-                variant="success"
-                dismissible
-                onClose={() => setSuccess("")}
+        {feedback ? (
+          <Alert
+            variant={feedback.variant}
+            dismissible
+            role={feedback.variant === "danger" ? "alert" : "status"}
+            onClose={() => setFeedback(null)}
+          >
+            {feedback.message}
+          </Alert>
+        ) : null}
+        {pageError ? (
+          <Alert variant="danger" role="alert">
+            <div className="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+              <span>{pageError}</span>
+              <Button
+                size="sm"
+                variant="outline-danger"
+                onClick={sharesResource.error?.code === "PAGE_OUT_OF_RANGE"
+                  ? () => updatePagination(1)
+                  : sharesResource.refresh}
               >
-                {success}
-              </Alert>
-            </Col>
-          </Row>
-        )}
+                {sharesResource.error?.code === "PAGE_OUT_OF_RANGE"
+                  ? "Return to first page"
+                  : "Try again"}
+              </Button>
+            </div>
+          </Alert>
+        ) : null}
 
-        {/* Shares Table */}
-        <Row>
-          <Col lg={12}>
-            <Card>
-              <Card.Body className="p-0">
-                <DataTable
-                  columns={columns}
-                  data={shares}
-                  loading={loading}
-                  noData={shares.length === 0}
-                  pagingData={{
-                    total: shares.length,
-                    pageIndex: 1,
-                    pageSize: 10,
-                  }}
-                  pageSizes={[10, 25, 50]}
-                />
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
+        <Card>
+          <Card.Body className="p-0">
+            <DataTable
+              instanceId="shares-page-size"
+              columns={columns}
+              data={shares}
+              loading={sharesResource.isLoading || sharesResource.isRefreshing}
+              noData={!sharesResource.isLoading && shares.length === 0}
+              pagingData={{
+                total: pagination.total,
+                pageIndex: pagination.page,
+                pageSize: pagination.limit,
+              }}
+              pageSizes={PAGE_SIZES}
+              onPaginationChange={(nextPage) => updatePagination(nextPage)}
+              onSelectChange={(nextSize) => updatePagination(1, nextSize)}
+            />
+          </Card.Body>
+        </Card>
       </Container>
 
-      {/* Create Share Modal */}
-      <Modal
-        show={showCreateModal}
-        onHide={() => setShowCreateModal(false)}
-        size="lg"
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Create Shareable Link</Modal.Title>
+      <Modal show={showCreateModal} onHide={closeCreateModal} size="lg" centered>
+        <Modal.Header closeButton={!createLoading}>
+          <Modal.Title>Create a share link</Modal.Title>
         </Modal.Header>
-        <Form onSubmit={handleCreateShare}>
+        <Form onSubmit={handleCreateShare} noValidate>
           <Modal.Body>
-            <Form.Group className="mb-3">
-              <Form.Label>
-                Title <span className="text-danger">*</span>
-              </Form.Label>
+            <p className="text-muted small">
+              Anyone with the link can view the commit details you include. Repository code and remote URLs are not shared.
+            </p>
+            {createError ? <Alert variant="danger" role="alert">{createError}</Alert> : null}
+
+            <Form.Group className="mb-3" controlId="share-title">
+              <Form.Label>Title</Form.Label>
               <Form.Control
                 type="text"
-                placeholder="e.g., Weekly Commit Summary"
+                placeholder="Weekly commit summary"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                maxLength={120}
+                disabled={createLoading}
+                onChange={(event) => setTitle(event.target.value)}
                 required
+                aria-describedby="share-title-help"
               />
+              <Form.Text id="share-title-help">Use a short title your audience will recognize.</Form.Text>
             </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Description</Form.Label>
+            <Form.Group className="mb-3" controlId="share-description">
+              <Form.Label>Description <span className="text-muted">(optional)</span></Form.Label>
               <Form.Control
                 as="textarea"
-                rows={2}
-                placeholder="Optional description for this share"
+                rows={3}
+                placeholder="Explain what this activity covers."
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                maxLength={500}
+                disabled={createLoading}
+                onChange={(event) => setDescription(event.target.value)}
               />
+              <Form.Text>{description.length}/500 characters</Form.Text>
             </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Repositories (leave empty for all)</Form.Label>
-              <Form.Select
-                multiple
-                value={selectedRepos}
-                onChange={(e) => {
-                  const selected = Array.from(
-                    e.target.selectedOptions,
-                    (option) => option.value
-                  );
-                  setSelectedRepos(selected);
-                }}
-                size="sm"
-                style={{ height: "120px" }}
-              >
-                {repositories.map((repo) => (
-                  <option key={repo.id} value={repo.name}>
-                    {repo.name}
-                  </option>
-                ))}
-              </Form.Select>
-              <Form.Text className="text-muted">
-                Hold Ctrl/Cmd to select multiple repositories
-              </Form.Text>
+            <Form.Group as="fieldset" className="mb-3">
+              <Form.Label as="legend">Repository access</Form.Label>
+              <div className="d-flex flex-wrap gap-3 mb-3">
+                <Form.Check
+                  type="radio"
+                  id="share-selected-repositories"
+                  name="share-repository-scope"
+                  label="Selected repositories"
+                  checked={repositoryScope === "selected"}
+                  disabled={createLoading}
+                  onChange={() => {
+                    setRepositoryScope("selected");
+                    setConfirmAllRepositories(false);
+                  }}
+                />
+                <Form.Check
+                  type="radio"
+                  id="share-all-repositories"
+                  name="share-repository-scope"
+                  label="All repositories"
+                  checked={repositoryScope === "all"}
+                  disabled={createLoading}
+                  onChange={() => {
+                    setRepositoryScope("all");
+                    setSelectedRepos([]);
+                  }}
+                />
+              </div>
+              {repositoryScope === "selected" ? (
+                <>
+                  <Form.Label htmlFor="share-repositories">Choose repositories</Form.Label>
+                  <Select
+                    inputId="share-repositories"
+                    instanceId="share-repositories"
+                    isMulti
+                    isClearable
+                    isLoading={repositoriesResource.isLoading}
+                    isDisabled={createLoading || Boolean(repositoriesResource.error)}
+                    placeholder={repositories.length ? "Search repositories" : "No repositories available"}
+                    options={repositoryOptions}
+                    value={repositoryOptions.filter((option) => selectedRepos.includes(option.value))}
+                    onChange={(options) => setSelectedRepos((options || []).map((option) => option.value))}
+                    aria-describedby="share-repositories-help"
+                  />
+                  <Form.Text id="share-repositories-help">
+                    Search and select one or more repositories to expose in this link.
+                  </Form.Text>
+                </>
+              ) : (
+                <Alert variant="warning" className="mb-0">
+                  <p className="mb-2">
+                    This includes commit activity from every current repository in your account.
+                  </p>
+                  <Form.Check
+                    id="share-confirm-all-repositories"
+                    label="I understand that all repository activity will be public to anyone with the link."
+                    checked={confirmAllRepositories}
+                    disabled={createLoading}
+                    onChange={(event) => setConfirmAllRepositories(event.target.checked)}
+                  />
+                </Alert>
+              )}
+              {repositoriesResource.error ? (
+                <Alert variant="warning" className="mt-2 mb-0 py-2" role="alert">
+                  {repositoriesResource.error.message}
+                  <Button
+                    size="sm"
+                    variant="link"
+                    className="py-0"
+                    onClick={repositoriesResource.refresh}
+                  >
+                    Try again
+                  </Button>
+                </Alert>
+              ) : null}
             </Form.Group>
 
             <Row>
               <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>From Date</Form.Label>
+                <Form.Group className="mb-3" controlId="share-date-from">
+                  <Form.Label>Start date <span className="text-muted">(optional)</span></Form.Label>
                   <Form.Control
                     type="date"
                     value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
+                    max={dateTo || undefined}
+                    disabled={createLoading}
+                    onChange={(event) => setDateFrom(event.target.value)}
                   />
                 </Form.Group>
               </Col>
               <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>To Date</Form.Label>
+                <Form.Group className="mb-3" controlId="share-date-to">
+                  <Form.Label>End date <span className="text-muted">(optional)</span></Form.Label>
                   <Form.Control
                     type="date"
                     value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
+                    min={dateFrom || undefined}
+                    disabled={createLoading}
+                    onChange={(event) => setDateTo(event.target.value)}
                   />
                 </Form.Group>
               </Col>
             </Row>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Expires In (days)</Form.Label>
+            <Form.Group className="mb-3" controlId="share-expiry">
+              <Form.Label>Expiry in days <span className="text-muted">(optional)</span></Form.Label>
               <Form.Control
                 type="number"
-                placeholder="Leave empty for no expiry"
+                placeholder="No expiry"
                 value={expiresInDays}
-                onChange={(e) => setExpiresInDays(e.target.value)}
-                min="1"
+                min={1}
+                max={3650}
+                step={1}
+                inputMode="numeric"
+                disabled={createLoading}
+                onChange={(event) => setExpiresInDays(event.target.value)}
               />
-              <Form.Text className="text-muted">
-                Common values: 7 (week), 30 (month), 365 (year)
-              </Form.Text>
+              <Form.Text>For example, enter 7 for one week or 30 for one month.</Form.Text>
             </Form.Group>
 
-            <Form.Group className="mb-3">
+            <Form.Group>
               <Form.Check
                 type="switch"
-                id="live-mode-switch"
-                label="Live Mode: Auto-update with new commits"
+                id="share-live-mode"
+                label="Keep this share up to date"
                 checked={live}
-                onChange={(e) => setLive(e.target.checked)}
+                disabled={createLoading}
+                onChange={(event) => setLive(event.target.checked)}
+                aria-describedby="share-live-help"
               />
-              <Form.Text className="text-muted">
-                If enabled, the share link will always show the latest data
-                (updated on access).
+              <Form.Text id="share-live-help">
+                Live shares refresh their snapshot at most once every 15 minutes when viewed.
               </Form.Text>
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
-            <Button
-              variant="secondary"
-              onClick={() => setShowCreateModal(false)}
-            >
+            <Button variant="secondary" onClick={closeCreateModal} disabled={createLoading}>
               Cancel
             </Button>
-            <Button variant="primary" type="submit" disabled={createLoading}>
-              {createLoading ? "Creating..." : "Create Share"}
+            <Button
+              variant="primary"
+              type="submit"
+              disabled={
+                createLoading ||
+                repositoriesResource.isLoading ||
+                Boolean(repositoriesResource.error) ||
+                (repositoryScope === "selected" && selectedRepos.length === 0) ||
+                (repositoryScope === "all" && !confirmAllRepositories)
+              }
+            >
+              {createLoading ? (
+                <><Spinner size="sm" animation="border" className="me-2" />Creating share…</>
+              ) : "Create share"}
             </Button>
           </Modal.Footer>
         </Form>
       </Modal>
 
-      {/* Preview Modal */}
       <Modal
-        show={showPreviewModal}
+        show={Boolean(revokeShare)}
         onHide={() => {
-          setShowPreviewModal(false);
-          setPreviewShare(null);
+          if (!pendingAction) {
+            setRevokeError("");
+            setRevokeShare(null);
+          }
         }}
-        size="xl"
+        centered
       >
-        <Modal.Header closeButton>
-          <Modal.Title>
-            Share Preview {previewShare ? `- ${previewShare.title}` : ""}
-          </Modal.Title>
+        <Modal.Header closeButton={!pendingAction}>
+          <Modal.Title>Revoke share link?</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {previewShare && (
+          <p className="mb-0">
+            The link for <strong>{revokeShare?.title}</strong> will stop working. You can still export its saved snapshot.
+          </p>
+          {revokeError ? <Alert variant="danger" role="alert" className="mt-3 mb-0">{revokeError}</Alert> : null}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            disabled={Boolean(pendingAction)}
+            onClick={() => {
+              setRevokeError("");
+              setRevokeShare(null);
+            }}
+          >
+            Keep share
+          </Button>
+          <Button variant="danger" disabled={Boolean(pendingAction)} onClick={handleRevoke}>
+            {pendingAction.endsWith(":revoke") ? (
+              <><Spinner size="sm" animation="border" className="me-2" />Revoking…</>
+            ) : "Revoke share"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal
+        show={Boolean(previewShare)}
+        onHide={() => {
+          setPreviewShare(null);
+          setBadgeState("idle");
+        }}
+        size="xl"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Badge preview{previewShare ? ` — ${previewShare.title}` : ""}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {previewShare ? (
             <div className="d-flex flex-column gap-3">
               <div className="d-flex flex-wrap gap-2">
-                <Button
-                  variant="primary"
-                  onClick={() => window.open(previewShare.url, "_blank")}
-                >
-                  <ExternalLink size={16} className="me-2" />
-                  Open Share Page
+                <Button variant="primary" onClick={() => openExternal(previewShare.url)}>
+                  <ExternalLink size={16} className="me-2" aria-hidden="true" />Open share page
                 </Button>
-                <Button
-                  variant="outline-primary"
-                  onClick={() => handleCopyLink(previewShare.url)}
-                >
-                  <Copy size={16} className="me-2" />
-                  Copy Share Link
+                <Button variant="outline-primary" onClick={() => handleCopy(previewShare.url, "Share link")}>
+                  <Copy size={16} className="me-2" aria-hidden="true" />Copy share link
                 </Button>
-                {getBadgeUrl(previewShare) && (
-                  <Button
-                    variant="outline-secondary"
-                    onClick={() => handleCopyLink(getBadgeUrl(previewShare))}
-                  >
-                    <ImageIcon size={16} className="me-2" aria-hidden="true" />
-                    Copy Badge URL
+                {badgeUrl ? (
+                  <Button variant="outline-secondary" onClick={() => handleCopy(badgeUrl, "Badge URL")}>
+                    <ImageIcon size={16} className="me-2" aria-hidden="true" />Copy badge URL
                   </Button>
-                )}
+                ) : null}
               </div>
-
-              {getBadgeUrl(previewShare) && (
+              {badgeUrl ? (
                 <Card>
-                  <Card.Header className="py-2">SVG Badge (Full Width Preview)</Card.Header>
-                  <Card.Body>
-                    <NextImage
-                      src={`${getBadgeUrl(previewShare)}?v=${previewVersion}`}
-                      alt="Share badge preview"
-                      width={1480}
-                      height={1960}
-                      unoptimized
-                      style={{ width: "100%", height: "auto", borderRadius: 8 }}
-                    />
+                  <Card.Header>SVG activity badge</Card.Header>
+                  <Card.Body className="p-2 p-md-3 text-center">
+                    {badgeState === "error" ? (
+                      <Alert variant="danger" role="alert" className="mb-0">
+                        <p>We could not load this badge preview.</p>
+                        <Button
+                          size="sm"
+                          variant="outline-danger"
+                          onClick={() => {
+                            setBadgeState("loading");
+                            setBadgeRetryKey((current) => current + 1);
+                          }}
+                        >
+                          Try again
+                        </Button>
+                      </Alert>
+                    ) : (
+                      <>
+                        {badgeState === "loading" ? (
+                          <div className="py-5" role="status" aria-live="polite">
+                            <Spinner animation="border" variant="primary" />
+                            <p className="text-muted mt-2 mb-0">Loading badge preview…</p>
+                          </div>
+                        ) : null}
+                        <NextImage
+                          key={badgeRetryKey}
+                          src={badgeUrl}
+                          alt={`Activity badge preview for ${previewShare.title}`}
+                          width={1480}
+                          height={1960}
+                          unoptimized
+                          className={`w-100 h-auto rounded ${badgeState === "loading" ? "visually-hidden" : ""}`}
+                          onLoad={() => setBadgeState("success")}
+                          onError={() => setBadgeState("error")}
+                        />
+                      </>
+                    )}
                   </Card.Body>
                 </Card>
+              ) : (
+                <Alert variant="warning" className="mb-0">
+                  {isShareInactive(previewShare)
+                    ? "Badges are unavailable for revoked or expired shares."
+                    : "This share URL cannot be used to build a badge."}
+                </Alert>
               )}
-
             </div>
-          )}
+          ) : null}
         </Modal.Body>
       </Modal>
     </Fragment>

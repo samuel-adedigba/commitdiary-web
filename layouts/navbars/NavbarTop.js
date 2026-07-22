@@ -9,18 +9,20 @@ import {
 // import sub components
 import QuickMenu from 'layouts/QuickMenu';
 
-const NavbarTop = (props) => {
+const NavbarTop = ({ buttonRef, navigationVisible, onToggle }) => {
 	return (
-		<Navbar expanded="lg" className="navbar-classic navbar navbar-expand-lg">
+		<Navbar expand="lg" className="navbar-classic">
 			<div className='d-flex justify-content-between w-100'>
 				<div className="d-flex align-items-center">
 					<button
+						ref={buttonRef}
 						type="button"
 						id="nav-toggle"
 						className="nav-icon-button me-2 icon-xs"
-						aria-label={props.data.showMenu ? "Close dashboard navigation" : "Open dashboard navigation"}
-						aria-expanded={props.data.showMenu}
-						onClick={() => props.data.SidebarToggleMenu(!props.data.showMenu)}>
+						aria-label={navigationVisible ? "Close dashboard navigation" : "Open dashboard navigation"}
+						aria-controls="dashboard-navigation"
+						aria-expanded={navigationVisible}
+						onClick={onToggle}>
 						<Menu size="18px" aria-hidden="true" />
 					</button>
 					<div className="ms-lg-3 d-none d-md-none d-lg-block">

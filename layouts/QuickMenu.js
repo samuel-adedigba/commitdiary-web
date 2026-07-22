@@ -1,268 +1,122 @@
-// import node module libraries
+"use client";
+
 import Link from "next/link";
-import { Fragment } from "react";
-import { useMediaQuery } from "react-responsive";
-import { Row, Col, Image, Dropdown, ListGroup } from "react-bootstrap";
-
-// simple bar scrolling used for notification item scrolling
-import SimpleBar from "simplebar-react";
-import "simplebar/dist/simplebar.min.css";
-
-// import hooks
-import useMounted from "hooks/useMounted";
+import { useState } from "react";
+import { Dropdown, Image, ListGroup } from "react-bootstrap";
 import { useAuth } from "../lib/auth-context";
+
+const UTILITY_LINKS = [
+  { href: "/marketplace", label: "VS Code Marketplace", icon: "package" },
+  { href: "/documentation", label: "Documentation", icon: "book-open" },
+];
 
 const QuickMenu = () => {
   const { user, signOut } = useAuth();
-  const hasMounted = useMounted();
-
-  const isDesktop = useMediaQuery({
-    query: "(min-width: 1224px)",
-  });
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState("");
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
 
   const handleSignOut = async () => {
+    if (isSigningOut) return;
+
     try {
+      setIsSigningOut(true);
+      setSignOutError("");
       await signOut();
-    } catch (error) {
+    } catch {
+      setSignOutError("We could not sign you out. Try again.");
+    } finally {
+      setIsSigningOut(false);
     }
   };
 
-  const Notifications = () => {
-    return (
-      <SimpleBar style={{ maxHeight: "300px" }}>
-        <ListGroup variant="flush">
-          <ListGroup.Item className="bg-light text-center">
-            <p className="mb-0 text-muted">No notifications</p>
-          </ListGroup.Item>
-        </ListGroup>
-      </SimpleBar>
-    );
-  };
-
-  const QuickMenuDesktop = () => {
-    return (
-      <ListGroup
-        as="ul"
-        bsPrefix="navbar-nav"
-        className="navbar-right-wrap ms-auto d-flex nav-top-wrap"
-      >
-        <li className="dropdown stopevent me-2">
-          <a
-            href="/marketplace"
-            className="btn btn-light btn-icon rounded-circle indicator indicator-primary text-muted"
-            title="VS Code Marketplace"
-          >
-            <i className="fe fe-package"></i>
-          </a>
-        </li>
-        <li className="dropdown stopevent me-2">
-          <Link
-            href="/documentation"
-            className="btn btn-light btn-icon rounded-circle indicator indicator-primary text-muted"
-            title="Documentation"
-          >
-            <i className="fe fe-book-open"></i>
-          </Link>
-        </li>
-        <Dropdown as="li" className="stopevent">
-          <Dropdown.Toggle
-            as="a"
-            bsPrefix=" "
-            id="dropdownNotification"
-            className="btn btn-light btn-icon rounded-circle indicator indicator-primary text-muted"
-          >
-            <i className="fe fe-bell"></i>
-          </Dropdown.Toggle>
-          <Dropdown.Menu
-            className="dashboard-dropdown notifications-dropdown dropdown-menu-lg dropdown-menu-end py-0"
-            aria-labelledby="dropdownNotification"
-            align="end"
-            show={false}
-          >
-            <Dropdown.Item className="mt-3" bsPrefix=" " as="div">
-              <div className="border-bottom px-3 pt-0 pb-3 d-flex justify-content-between align-items-end">
-                <span className="h4 mb-0">Notifications</span>
-                <Link href="/" className="text-muted">
-                  <span className="align-middle">
-                    <i className="fe fe-settings me-1"></i>
-                  </span>
-                </Link>
-              </div>
-              <Notifications />
-              <div className="border-top px-3 pt-3 pb-3">
-                <Link href="/" className="text-link fw-semi-bold">
-                  See all Notifications
-                </Link>
-              </div>
-            </Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown>
-        <Dropdown as="li" className="ms-2">
-          <Dropdown.Toggle
-            as="a"
-            bsPrefix=" "
-            className="rounded-circle"
-            id="dropdownUser"
-          >
-            <div className="avatar avatar-md avatar-indicators avatar-online">
-              <Image
-                alt="avatar"
-                src={
-                  user?.user_metadata?.avatar_url ||
-                  "/images/avatar/avatar-1.jpg"
-                }
-                className="rounded-circle"
-              />
-            </div>
-          </Dropdown.Toggle>
-          <Dropdown.Menu
-            className="dropdown-menu dropdown-menu-end "
-            align="end"
-            aria-labelledby="dropdownUser"
-            show={false}
-          >
-            <Dropdown.Item as="div" className="px-4 pb-0 pt-2" bsPrefix=" ">
-              <div className="lh-1 ">
-                <h5 className="mb-1">
-                  {user?.user_metadata?.full_name ||
-                    user?.email?.split("@")[0] ||
-                    "User"}
-                </h5>
-                <div className="text-inherit fs-6">{user?.email}</div>
-              </div>
-              <div className=" dropdown-divider mt-3 mb-2"></div>
-            </Dropdown.Item>
-            <Dropdown.Item eventKey="2">
-              <i className="fe fe-user me-2"></i> Edit Profile
-            </Dropdown.Item>
-            <Dropdown.Item eventKey="3">
-              <i className="fe fe-activity me-2"></i> Activity Log
-            </Dropdown.Item>
-            <Dropdown.Item>
-              <i className="fe fe-settings me-2"></i> Account Settings
-            </Dropdown.Item>
-            <Dropdown.Item onClick={handleSignOut}>
-              <i className="fe fe-power me-2"></i>Sign Out
-            </Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown>
-      </ListGroup>
-    );
-  };
-
-  const QuickMenuMobile = () => {
-    return (
-      <ListGroup
-        as="ul"
-        bsPrefix="navbar-nav"
-        className="navbar-right-wrap ms-auto d-flex nav-top-wrap"
-      >
-        <li className="dropdown stopevent me-2">
-          <a
-            href="/marketplace"
-            className="btn btn-light btn-icon rounded-circle indicator indicator-primary text-muted"
-            title="VS Code Marketplace"
-          >
-            <i className="fe fe-package"></i>
-          </a>
-        </li>
-        <li className="dropdown stopevent me-2">
-          <Link
-            href="/documentation"
-            className="btn btn-light btn-icon rounded-circle indicator indicator-primary text-muted"
-            title="Documentation"
-          >
-            <i className="fe fe-book-open"></i>
-          </Link>
-        </li>
-        <Dropdown as="li" className="stopevent">
-          <Dropdown.Toggle
-            as="a"
-            bsPrefix=" "
-            id="dropdownNotification"
-            className="btn btn-light btn-icon rounded-circle indicator indicator-primary text-muted"
-          >
-            <i className="fe fe-bell"></i>
-          </Dropdown.Toggle>
-          <Dropdown.Menu
-            className="dashboard-dropdown notifications-dropdown dropdown-menu-lg dropdown-menu-end py-0"
-            aria-labelledby="dropdownNotification"
-            align="end"
-          >
-            <Dropdown.Item className="mt-3" bsPrefix=" " as="div">
-              <div className="border-bottom px-3 pt-0 pb-3 d-flex justify-content-between align-items-end">
-                <span className="h4 mb-0">Notifications</span>
-                <Link href="/" className="text-muted">
-                  <span className="align-middle">
-                    <i className="fe fe-settings me-1"></i>
-                  </span>
-                </Link>
-              </div>
-              <Notifications />
-              <div className="border-top px-3 pt-3 pb-3">
-                <Link href="/" className="text-link fw-semi-bold">
-                  See all Notifications
-                </Link>
-              </div>
-            </Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown>
-        <Dropdown as="li" className="ms-2">
-          <Dropdown.Toggle
-            as="a"
-            bsPrefix=" "
-            className="rounded-circle"
-            id="dropdownUser"
-          >
-            <div className="avatar avatar-md avatar-indicators avatar-online">
-              <Image
-                alt="avatar"
-                src={
-                  user?.user_metadata?.avatar_url ||
-                  "/images/avatar/avatar-1.jpg"
-                }
-                className="rounded-circle"
-              />
-            </div>
-          </Dropdown.Toggle>
-          <Dropdown.Menu
-            className="dropdown-menu dropdown-menu-end "
-            align="end"
-            aria-labelledby="dropdownUser"
-          >
-            <Dropdown.Item as="div" className="px-4 pb-0 pt-2" bsPrefix=" ">
-              <div className="lh-1 ">
-                <h5 className="mb-1">
-                  {user?.user_metadata?.full_name ||
-                    user?.email?.split("@")[0] ||
-                    "User"}
-                </h5>
-                <div className="text-inherit fs-6">{user?.email}</div>
-              </div>
-              <div className=" dropdown-divider mt-3 mb-2"></div>
-            </Dropdown.Item>
-            <Dropdown.Item eventKey="2">
-              <i className="fe fe-user me-2"></i> Edit Profile
-            </Dropdown.Item>
-            <Dropdown.Item eventKey="3">
-              <i className="fe fe-activity me-2"></i> Activity Log
-            </Dropdown.Item>
-            <Dropdown.Item>
-              <i className="fe fe-settings me-2"></i> Account Settings
-            </Dropdown.Item>
-            <Dropdown.Item onClick={handleSignOut}>
-              <i className="fe fe-power me-2"></i>Sign Out
-            </Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown>
-      </ListGroup>
-    );
-  };
-
   return (
-    <Fragment>
-      {hasMounted && isDesktop ? <QuickMenuDesktop /> : <QuickMenuMobile />}
-    </Fragment>
+    <ListGroup
+      as="ul"
+      bsPrefix="navbar-nav"
+      className="navbar-right-wrap ms-auto d-flex nav-top-wrap align-items-center"
+    >
+      {UTILITY_LINKS.map((item) => (
+        <li key={item.href} className="me-2 d-none d-sm-block">
+          <Link
+            href={item.href}
+            className="btn btn-light btn-icon rounded-circle indicator indicator-primary text-muted"
+            aria-label={item.label}
+            title={item.label}
+          >
+            <i className={`fe fe-${item.icon}`} aria-hidden="true" />
+          </Link>
+        </li>
+      ))}
+
+      <Dropdown as="li" className="stopevent">
+        <Dropdown.Toggle
+          as="button"
+          type="button"
+          bsPrefix="nav-icon-button"
+          id="dropdownNotification"
+          className="dashboard-icon-toggle btn btn-light btn-icon rounded-circle indicator indicator-primary text-muted"
+          aria-label="Open notifications"
+        >
+          <i className="fe fe-bell" aria-hidden="true" />
+        </Dropdown.Toggle>
+        <Dropdown.Menu
+          className="dashboard-dropdown notifications-dropdown dropdown-menu-lg dropdown-menu-end py-0"
+          aria-labelledby="dropdownNotification"
+          align="end"
+        >
+          <div className="border-bottom px-3 py-3">
+            <h2 className="h5 mb-0">Notifications</h2>
+          </div>
+          <div className="bg-light px-3 py-4 text-center">
+            <p className="mb-0 text-muted">You have no notifications.</p>
+          </div>
+        </Dropdown.Menu>
+      </Dropdown>
+
+      <Dropdown as="li" className="ms-2">
+        <Dropdown.Toggle
+          as="button"
+          type="button"
+          bsPrefix="nav-icon-button"
+          className="dashboard-icon-toggle rounded-circle"
+          id="dropdownUser"
+          aria-label={`Open account menu for ${displayName}`}
+        >
+          <span className="avatar avatar-md avatar-indicators avatar-online">
+            <Image
+              alt=""
+              src={user?.user_metadata?.avatar_url || "/images/avatar/avatar-1.jpg"}
+              className="rounded-circle"
+            />
+          </span>
+        </Dropdown.Toggle>
+        <Dropdown.Menu
+          className="dropdown-menu dropdown-menu-end dashboard-account-menu"
+          align="end"
+          aria-labelledby="dropdownUser"
+        >
+          <div className="px-4 pb-2 pt-2">
+            <p className="mb-1 fw-semibold text-break">{displayName}</p>
+            <p className="mb-0 text-muted small text-break">{user?.email}</p>
+          </div>
+          <Dropdown.Divider />
+          <Dropdown.Item as={Link} href="/pages/settings">
+            <i className="fe fe-settings me-2" aria-hidden="true" />
+            Account settings
+          </Dropdown.Item>
+          <Dropdown.Item type="button" as="button" disabled={isSigningOut} onClick={handleSignOut}>
+            <i className="fe fe-power me-2" aria-hidden="true" />
+            {isSigningOut ? "Signing out…" : "Sign out"}
+          </Dropdown.Item>
+          {signOutError ? (
+            <div className="px-3 pb-2 text-danger small" role="alert">
+              {signOutError}
+            </div>
+          ) : null}
+        </Dropdown.Menu>
+      </Dropdown>
+    </ListGroup>
   );
 };
 

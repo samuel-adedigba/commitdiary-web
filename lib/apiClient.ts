@@ -1,15 +1,52 @@
-const API_URL = ''
+import type {
+    CreateShareParams,
+    CreateShareResponse,
+    RevokeShareResponse,
+    ShareExport,
+    SharesResponse,
+    ShareViewData,
+} from '../src/types/share'
+
+const API_URL = typeof window === 'undefined' ? (process.env.API_URL || '') : ''
 
 // Cache user data to avoid repeated auth calls
 let cachedUser: any = null
 let lastUserFetch = 0
+let inFlightUserFetch: Promise<any> | null = null
 const USER_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 const COMMITS_DEDUPE_WINDOW_MS = 5000
 const REPOS_REPORTS_DEDUPE_WINDOW_MS = 5000
+const SHARE_DEDUPE_WINDOW_MS = 2000
 const inFlightCommitsRequests = new Map<string, Promise<{ commits: Commit[]; total: number; limit: number; offset: number }>>()
 const recentCommitsResponses = new Map<string, { ts: number; data: { commits: Commit[]; total: number; limit: number; offset: number } }>()
 let inFlightReposReportsRequest: Promise<RepositoryWithReports[]> | null = null
 let recentReposReportsResponse: { ts: number; data: RepositoryWithReports[] } | null = null
+const inFlightShareListRequests = new Map<string, Promise<SharesResponse>>()
+const recentShareListResponses = new Map<string, { ts: number; data: SharesResponse }>()
+const inFlightPublicShareRequests = new Map<string, Promise<ShareViewData>>()
+const recentPublicShareResponses = new Map<string, { ts: number; data: ShareViewData }>()
+
+export class ApiError extends Error {
+    status: number
+    code?: string
+
+    constructor(message: string, status: number, code?: string) {
+        super(message)
+        this.name = 'ApiError'
+        this.status = status
+        this.code = code
+    }
+}
+
+async function getApiError(response: Response, fallback: string): Promise<ApiError> {
+    const payload = await response.json().catch(() => null)
+    const message = typeof payload?.error === 'string'
+        ? payload.error
+        : typeof payload?.message === 'string'
+            ? payload.message
+            : fallback
+    return new ApiError(message, response.status, payload?.code)
+}
 
 function clearCommitsCache() {
     recentCommitsResponses.clear()
@@ -17,6 +54,10 @@ function clearCommitsCache() {
 
 function clearReposReportsCache() {
     recentReposReportsResponse = null
+}
+
+function clearShareListCache() {
+    recentShareListResponses.clear()
 }
 
 async function getCachedUser() {
@@ -27,14 +68,23 @@ async function getCachedUser() {
         return cachedUser
     }
 
-    const response = await fetch('/api/auth/user', { cache: 'no-store' })
-    if (response.ok) {
-        const payload = await response.json()
-        cachedUser = payload.user ?? null
-        lastUserFetch = now
-    }
+    if (inFlightUserFetch) return inFlightUserFetch
 
-    return cachedUser
+    inFlightUserFetch = (async () => {
+        const response = await fetch('/api/auth/user', { cache: 'no-store' })
+        if (response.ok) {
+            const payload = await response.json()
+            cachedUser = payload.user ?? null
+            lastUserFetch = Date.now()
+        }
+        return cachedUser
+    })()
+
+    try {
+        return await inFlightUserFetch
+    } finally {
+        inFlightUserFetch = null
+    }
 }
 
 export interface Commit {
@@ -252,31 +302,14 @@ export async function getUserProfile(): Promise<UserProfile> {
 }
 
 export async function getRepositories(): Promise<Repository[]> {
-    const token = await getAuthToken()
-    if (!token) throw new Error('Not authenticated')
-
-    const user = await getCachedUser()
-    if (!user) throw new Error('User not found')
-
-    const response = await fetch(`${API_URL}/v1/repos/reports`, {
-        cache: 'no-store',
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    })
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch repositories: ${response.statusText}`)
-    }
-
-    const payload = await response.json()
-    return (payload.repos || []).map((repo: any) => ({
+    const repos = await getReposWithReportSettings()
+    return repos.map((repo) => ({
         id: repo.id,
         name: repo.name,
         remote: repo.remote,
         created_at: repo.created_at,
         updated_at: repo.updated_at,
-        commit_count: repo.commit_count || repo.total_commits || 0
+        commit_count: repo.commit_count || 0
     }))
 }
 
@@ -402,21 +435,7 @@ export async function syncCommits(
 
 // ==================== SHARES API ====================
 
-export async function createShare(params: {
-    title: string
-    description?: string
-    repos?: string[]
-    from?: string
-    to?: string
-    expires_in_days?: number
-}): Promise<{
-    id: string
-    token: string
-    url: string
-    expires_at?: string
-    total_commits: number
-    total_repos: number
-}> {
+export async function createShare(params: CreateShareParams): Promise<CreateShareResponse> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
@@ -430,49 +449,55 @@ export async function createShare(params: {
     })
 
     if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`Failed to create share: ${response.statusText} - ${errorText}`)
+        throw await getApiError(response, 'We could not create the share. Try again.')
     }
 
-    return response.json()
+    const result = await response.json()
+    clearShareListCache()
+    return result
 }
 
-export async function getShares(): Promise<{
-    shares: Array<{
-        id: string
-        title: string
-        description?: string
-        scope: { repos?: string[]; from?: string; to?: string }
-        token: string
-        url: string
-        expires_at?: string
-        revoked: boolean
-        created_at: string
-        total_commits: number
-        total_repos: number
-    }>
-}> {
+export async function getShares(params?: { page?: number; limit?: number }): Promise<SharesResponse> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/shares`, {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
+    const query = new URLSearchParams({
+        page: String(params?.page ?? 1),
+        limit: String(params?.limit ?? 10),
     })
+    const requestKey = query.toString()
+    const recent = recentShareListResponses.get(requestKey)
+    if (recent && Date.now() - recent.ts < SHARE_DEDUPE_WINDOW_MS) return recent.data
+    const inFlight = inFlightShareListRequests.get(requestKey)
+    if (inFlight) return inFlight
 
-    if (!response.ok) {
-        throw new Error(`Failed to fetch shares: ${response.statusText}`)
+    const requestPromise = (async () => {
+        const response = await fetch(`${API_URL}/v1/shares?${query}`, {
+            cache: 'no-store',
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (!response.ok) {
+            throw await getApiError(response, 'We could not load your shares. Try again.')
+        }
+
+        const data = await response.json()
+        recentShareListResponses.set(requestKey, { ts: Date.now(), data })
+        return data
+    })()
+
+    inFlightShareListRequests.set(requestKey, requestPromise)
+    try {
+        return await requestPromise
+    } finally {
+        inFlightShareListRequests.delete(requestKey)
     }
-
-    return response.json()
 }
 
-export async function revokeShare(shareId: string): Promise<{ message: string }> {
+export async function revokeShare(shareId: string): Promise<RevokeShareResponse> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/shares/${shareId}`, {
+    const response = await fetch(`${API_URL}/v1/shares/${encodeURIComponent(shareId)}`, {
         method: 'DELETE',
         headers: {
             'Authorization': `Bearer ${token}`
@@ -480,74 +505,76 @@ export async function revokeShare(shareId: string): Promise<{ message: string }>
     })
 
     if (!response.ok) {
-        throw new Error(`Failed to revoke share: ${response.statusText}`)
+        throw await getApiError(response, 'We could not revoke the share. Try again.')
     }
 
-    return response.json()
+    const result = await response.json()
+    clearShareListCache()
+    return result
 }
 
 export async function getPublicShare(username: string, token: string, params?: {
     page?: number
     limit?: number
     repo?: string
-    refresh?: boolean
-}): Promise<{
-    title: string
-    description?: string
-    username: string
-    scope: { repos?: string[]; from?: string; to?: string }
-    repos: Array<{
-        repo_name: string
-        repo_remote?: string
-        commit_count: number
-        total_commits?: number
-        has_more?: boolean
-        commits: Array<{
-            sha: string
-            message: string
-            date: string
-            category: string
-            author_name: string
-            files: Array<{ path: string; changeType?: string; additions?: number; deletions?: number }>
-        }>
-    }>
-    total_commits: number
-    total_repos: number
-    page: number
-    limit: number
-}> {
+    includeAllRepos?: boolean
+}): Promise<ShareViewData> {
     const query = new URLSearchParams({
-        page: String(params?.page || 1),
-        limit: String(params?.limit || 50),
+        page: String(params?.page ?? 1),
+        limit: String(params?.limit ?? 20),
         ...(params?.repo && { repo: params.repo }),
-        ...(params?.refresh && { refresh: "1" })
+        ...(params?.includeAllRepos && { include_all_repos: '1' })
     })
+    const requestKey = `${username}:${token}:${query}`
+    const recent = recentPublicShareResponses.get(requestKey)
+    if (recent && Date.now() - recent.ts < SHARE_DEDUPE_WINDOW_MS) return recent.data
+    const inFlight = inFlightPublicShareRequests.get(requestKey)
+    if (inFlight) return inFlight
 
-    const response = await fetch(`${API_URL}/s/${username}/${token}?${query}`)
+    const requestPromise = (async () => {
+        const response = await fetch(
+            `${API_URL}/v1/public/shares/${encodeURIComponent(username)}/${encodeURIComponent(token)}?${query}`,
+            { cache: 'no-store' },
+        )
 
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }))
-        throw new Error(errorData.error || `Failed to fetch share: ${response.statusText}`)
+        if (!response.ok) {
+            throw await getApiError(response, 'We could not load this share. Try again.')
+        }
+
+        const data = await response.json()
+        recentPublicShareResponses.set(requestKey, { ts: Date.now(), data })
+        return data
+    })()
+
+    inFlightPublicShareRequests.set(requestKey, requestPromise)
+    try {
+        return await requestPromise
+    } finally {
+        inFlightPublicShareRequests.delete(requestKey)
     }
-
-    return response.json()
 }
 
-export async function exportShare(shareId: string, format: 'md' | 'csv'): Promise<Blob> {
+export async function exportShare(shareId: string, format: 'md' | 'csv'): Promise<ShareExport> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/shares/${shareId}/export?format=${format}`, {
+    const response = await fetch(`${API_URL}/v1/shares/${encodeURIComponent(shareId)}/export?format=${format}`, {
         headers: {
             'Authorization': `Bearer ${token}`
         }
     })
 
     if (!response.ok) {
-        throw new Error(`Failed to export share: ${response.statusText}`)
+        throw await getApiError(response, 'We could not export the share. Try again.')
     }
 
-    return response.blob()
+    const disposition = response.headers.get('Content-Disposition')
+    const filename = disposition?.match(/filename="([^"]+)"/i)?.[1]
+    return {
+        blob: await response.blob(),
+        message: response.headers.get('X-CommitDiary-Message') || 'Export downloaded successfully.',
+        ...(filename ? { filename } : {}),
+    }
 }
 
 // ==================== COMMIT REPORTS API ====================
@@ -666,7 +693,7 @@ export async function getReposWithReportSettings(): Promise<RepositoryWithReport
         })
 
         if (!response.ok) {
-            throw new Error(`Failed to fetch repos: ${response.statusText}`)
+            throw await getApiError(response, 'We could not load your repositories. Try again.')
         }
 
         const data = await response.json()

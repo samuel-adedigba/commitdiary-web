@@ -382,14 +382,14 @@ const RepositoriesPage = () => {
       <Container fluid className="mt-n22 px-6">
         <Row>
           <Col lg={12} md={12} xs={12}>
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="dashboard-page-header mb-4">
               <div>
-                <h3 className="mb-0 text-white">Repositories</h3>
+                <h1 className="h3 mb-0 text-white">Repositories</h1>
                 <p className="mb-0 text-white-50">
                   {repositories.length} total repositories
                 </p>
               </div>
-              <div className="d-flex gap-2">
+              <div className="dashboard-header-actions">
                 <Button
                   variant="outline-light"
                   onClick={handleGlobalRecovery}

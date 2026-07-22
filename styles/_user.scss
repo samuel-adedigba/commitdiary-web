@@ -159,6 +159,27 @@ summary {
   }
 }
 
+.dashboard-icon-toggle::after {
+  display: none !important;
+}
+
+.dashboard-account-menu {
+  max-width: min(22rem, calc(100vw - 1.5rem));
+}
+
+.dashboard-page-header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashboard-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .nav-icon-button {
   display: inline-grid;
   place-items: center;
@@ -172,6 +193,93 @@ summary {
 
   &:hover {
     background: rgba($cd-sage, 0.14);
+  }
+
+  &:focus-visible {
+    outline: 3px solid rgba($cd-sage-dark, 0.45);
+    outline-offset: 2px;
+  }
+}
+
+.dashboard-skip-link {
+  position: fixed;
+  z-index: 1100;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.45rem;
+  background: $cd-surface;
+  color: $cd-ink-raised;
+  box-shadow: $smooth-shadow-md;
+  transform: translateY(-180%);
+
+  &:focus {
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .header .navbar {
+    min-height: 4rem;
+    padding: 0.625rem 0.75rem;
+  }
+
+  .nav-icon-button {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .header .btn-icon,
+  .responsive-pagination .page-link {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+
+  .responsive-pagination .page-link {
+    display: grid;
+    place-items: center;
+  }
+
+  .dashboard-main-content {
+    .dashboard-hero {
+      min-height: 15rem;
+    }
+
+    > .container-fluid.mt-n22 {
+      margin-top: -10rem !important;
+    }
+
+    > .container-fluid.p-6 {
+      padding: 1rem !important;
+    }
+  }
+
+  .dashboard-page-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dashboard-header-action,
+  .dashboard-header-actions {
+    width: 100%;
+  }
+
+  .dashboard-header-actions > * {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .navbar-classic {
+    .dashboard-dropdown,
+    .dashboard-account-menu {
+      position: fixed !important;
+      inset: 4.25rem 0.75rem auto !important;
+      width: auto !important;
+      min-width: 0 !important;
+      margin: 0 !important;
+      transform: none !important;
+    }
   }
 }
 
@@ -211,6 +319,10 @@ summary {
     font-size: 0.84rem;
     line-height: 1.4;
     transition: background 160ms ease, color 160ms ease;
+
+    @media (max-width: 767.98px) {
+      min-height: 2.75rem;
+    }
 
     .nav-icon {
       color: $cd-sage;

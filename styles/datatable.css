@@ -76,3 +76,33 @@
 .gap-4 {
   gap: 1.5rem;
 }
+
+.data-table-page-size {
+  min-width: 130px;
+}
+
+.responsive-pagination {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.responsive-pagination .pagination {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 575.98px) {
+  .data-table-page-size {
+    width: 100%;
+  }
+
+  .responsive-pagination {
+    width: 100%;
+  }
+
+  .responsive-pagination .page-item:first-child,
+  .responsive-pagination .page-item:last-child,
+  .responsive-pagination .page-item.disabled:not(.active) {
+    display: none;
+  }
+}

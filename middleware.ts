@@ -18,7 +18,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || ''
  */
 
 export async function middleware(request: NextRequest) {
-  if ((request.nextUrl.pathname.startsWith('/v1') || request.nextUrl.pathname.startsWith('/s/')) && API_URL) {
+  if (request.nextUrl.pathname.startsWith('/v1') && API_URL) {
     return proxyApiRequest(request)
   }
 

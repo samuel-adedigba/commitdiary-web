@@ -13,7 +13,9 @@ export default defineConfig({
       '/lib': fileURLToPath(new URL('./lib', import.meta.url)),
       '/hooks': fileURLToPath(new URL('./hooks', import.meta.url)),
       '/components': fileURLToPath(new URL('./components', import.meta.url)),
-      '/sub-components': fileURLToPath(new URL('./sub-components', import.meta.url))
+      '/sub-components': fileURLToPath(new URL('./sub-components', import.meta.url)),
+      '/layouts': fileURLToPath(new URL('./layouts', import.meta.url)),
+      'styles': fileURLToPath(new URL('./styles', import.meta.url))
     }
   }
 })

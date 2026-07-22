@@ -7,6 +7,7 @@ import {
   processLanguageDistribution,
 } from "/lib/badgeDataProcessor";
 import { generateBadgeSVG } from "/lib/svgBadgeGenerator";
+import { ApiError } from "/lib/apiClient";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -15,18 +16,18 @@ export async function GET(request, { params }) {
   const { username, token } = await params;
 
   try {
-    // Fetch data with a larger limit to ensure we have enough for charts
+    // Badge calculations need the bounded snapshot across all included repositories.
     const shareData = await apiClient.getPublicShare(username, token, {
       page: 1,
-      limit: 100,
-      refresh: true,
+      limit: 500,
+      includeAllRepos: true,
     });
 
     if (!shareData) {
       return new NextResponse("Share not found", { status: 404 });
     }
 
-    // Process data forcharts
+    // Process data for charts.
     const repos = processRepoDistribution(shareData);
     const timeline = processActivityTimeline(shareData);
     const stats = calculateStats(shareData);
@@ -35,13 +36,12 @@ export async function GET(request, { params }) {
     // Generate SVG
     const svg = generateBadgeSVG({ repos, timeline, stats, languages });
 
-    // Set response headers for SVG and caching
     return new NextResponse(svg, {
       headers: {
         "Content-Type": "image/svg+xml",
-        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-        Pragma: "no-cache",
-        Expires: "0",
+        "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=300",
+        "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (error) {
@@ -55,9 +55,12 @@ export async function GET(request, { params }) {
       </svg>
     `;
     return new NextResponse(errorSvg, {
+      status: error instanceof ApiError ? error.status : 500,
       headers: {
         "Content-Type": "image/svg+xml",
-        "Cache-Control": "no-cache",
+        "Cache-Control": "no-store",
+        "Content-Security-Policy": "default-src 'none'; sandbox",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   }

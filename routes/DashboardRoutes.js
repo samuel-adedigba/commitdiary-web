@@ -60,6 +60,12 @@ export const DashboardMenu = [
     icon: "book-open",
     link: "/documentation",
   },
+  {
+    id: uuid(),
+    title: "VS Code Marketplace",
+    icon: "package",
+    link: "/marketplace",
+  },
 ];
 
 export default DashboardMenu;

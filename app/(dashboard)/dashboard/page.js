@@ -130,9 +130,9 @@ const Home = () => {
       <Container fluid className="mt-n22 px-6">
         <Row>
           <Col lg={12} md={12} xs={12}>
-            <div className="d-flex justify-content-between align-items-center mb-2">
+            <div className="dashboard-page-header mb-2">
               <div>
-                <h3 className="mb-0 text-white">CommitDiary Dashboard</h3>
+                <h1 className="h3 mb-0 text-white">CommitDiary Dashboard</h1>
                 <p className="mb-0 text-white-50 d-flex align-items-center gap-2">
                   {isConnected ? (
                     <>
@@ -147,7 +147,7 @@ const Home = () => {
                   )}
                 </p>
               </div>
-              <Link href="/commits" className="btn btn-white">
+              <Link href="/commits" className="btn btn-white dashboard-header-action">
                 View All Commits
               </Link>
             </div>

@@ -2,35 +2,49 @@
 
 .navbar-vertical {
 
-  margin-left: -17rem;
+  margin-left: 0;
   display: block;
   position: fixed;
   top: 0;
   bottom: 0;
-  width: 100%;
-  max-width: 250px;
+  z-index: 1045;
+  width: min(86vw, 15.625rem);
+  max-width: 15.625rem;
   padding: 0rem;
   background-color: $gray-800;
   border-right: 1px solid $gray-800;
-  -webkit-transition: margin 0.25s ease-out;
-  -moz-transition: margin 0.25s ease-out;
-  -o-transition: margin 0.25s ease-out;
-  transition: margin 0.25s ease-out;
+  visibility: hidden;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease-out, visibility 0.25s;
+  pointer-events: none;
 
   .slimScrollDiv {
     height: 100% !important;
     overflow-y: auto;
   }
   .nav-scroller {
-    height: 100% !important;
-    overflow-y: auto;
+    height: auto !important;
+    overflow: visible;
   }
   .navbar-brand {
-    padding: 1rem 1.5rem 1.5rem;
+    min-width: 0;
+    padding: 1rem 0.5rem 1rem 1.25rem;
     margin-right: 0px;
-    display: block;
+    display: flex;
     img {
       height: 1.875rem;
+    }
+  }
+
+  .dashboard-nav-close {
+    flex: 0 0 auto;
+    margin-right: 0.75rem;
+    color: $gray-300;
+
+    &:hover,
+    &:focus-visible {
+      background: rgba($white, 0.1);
+      color: $white;
     }
   }
   .navbar-heading {

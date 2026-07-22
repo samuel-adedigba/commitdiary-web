@@ -53,6 +53,7 @@ const Pagination = (props: PaginationProps) => {
     }
 
     return (
+      <nav className="responsive-pagination" aria-label="Pagination">
         <BSPagination className={className}>
             <BSPagination.First 
                 onClick={() => onChange(1)} 
@@ -87,6 +88,7 @@ const Pagination = (props: PaginationProps) => {
                 disabled={currentPage === totalPages}
             />
         </BSPagination>
+      </nav>
     )
 }
 

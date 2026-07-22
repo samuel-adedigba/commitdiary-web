@@ -311,9 +311,9 @@ const CommitsPage = () => {
       <Container fluid className="mt-n22 px-6">
         <Row>
           <Col lg={12} md={12} xs={12}>
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="dashboard-page-header mb-4">
               <div>
-                <h3 className="mb-0 text-white">Commit History</h3>
+                <h1 className="h3 mb-0 text-white">Commit History</h1>
                 <p className="mb-0 text-white-50 d-flex align-items-center gap-2">
                   {isConnected ? (
                     <>
@@ -330,7 +330,7 @@ const CommitsPage = () => {
                   <span>{totalCommits} total commits</span>
                 </p>
               </div>
-              <div>
+              <div className="dashboard-header-actions">
                 <Button
                   variant="white"
                   onClick={() => fetchCommits(currentPage, pageSize)}
