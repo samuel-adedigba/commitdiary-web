@@ -50,6 +50,16 @@ describe("resolveDomainRoute", () => {
     }
   });
 
+  it("keeps the Marketplace redirect route on the app origin", () => {
+    expect(
+      resolveDomainRoute(
+        new URL("https://app.example.test/marketplace"),
+        "app.example.test",
+        config,
+      ),
+    ).toEqual({ action: "next" });
+  });
+
   it("keeps path-based local development when origins are absent", () => {
     expect(
       resolveDomainRoute(new URL("http://localhost:3000/"), "localhost:3000", {

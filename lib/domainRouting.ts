@@ -7,7 +7,6 @@ const MARKETING_PATHS = new Set([
   "/github",
   "/how-it-works",
   "/install",
-  "/marketplace",
   "/pricing",
   "/privacy",
   "/templates",
