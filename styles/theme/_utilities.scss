@@ -2,6 +2,8 @@
 // utilities.scss
 // Extended from Bootstrap
 //
+@use "sass:map";
+
 @import "~bootstrap/scss/functions";
 @import "~bootstrap/scss/variables";
 @import "~bootstrap/scss/variables-dark";
@@ -9,10 +11,9 @@
 @import "~bootstrap/scss/mixins";
 @import "~bootstrap/scss/utilities";
 
-
 $utilities: () !default;
 
-$utilities: map-merge(
+$utilities: map.merge(
   $utilities,
   (
     "font-weight": (
@@ -165,7 +166,7 @@ $utilities: map-merge(
       property: color,
       class: text,
       values:
-        map-merge(
+        map.merge(
           $theme-colors,
           (
             "gray-100": $gray-100,
@@ -193,7 +194,7 @@ $utilities: map-merge(
         property: background-color,
         class: bg,
         values:
-          map-merge(
+          map.merge(
             $theme-colors,
             (
               "gray-100": $gray-100,

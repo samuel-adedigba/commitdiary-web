@@ -12,6 +12,11 @@ $gray-800: $cd-ink-raised;
 $gray-900: $cd-ink;
 $black: #070b0a;
 
+// Bootstrap uses these candidates for component foregrounds. Pure endpoints
+// preserve WCAG AA contrast for mid-tone theme colors such as $info.
+$color-contrast-light: #fff;
+$color-contrast-dark: #000;
+
 $primary: $cd-sage-dark;
 $secondary: $cd-muted-dark;
 $success: #3f745f;

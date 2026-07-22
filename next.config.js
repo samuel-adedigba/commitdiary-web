@@ -47,6 +47,13 @@ const createSecurityHeaders = ({ allowEmbedding = false } = {}) => [
 const nextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: __dirname,
+  // Bootstrap 5.3 source uses APIs deprecated ahead of Bootstrap 6, and
+  // Next 15's webpack loader still calls Sass's legacy JS API. Silence only
+  // those compatibility notices so other Sass warnings remain actionable.
+  sassOptions: {
+    quietDeps: true,
+    silenceDeprecations: ["import", "legacy-js-api"],
+  },
 
   async headers() {
     return [

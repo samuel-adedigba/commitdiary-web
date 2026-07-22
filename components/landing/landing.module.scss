@@ -1,4 +1,4 @@
-@import "../../styles/brand-tokens";
+@use "../../styles/brand-tokens" as *;
 
 $ink: $cd-ink;
 $ink-soft: $cd-ink-soft;
