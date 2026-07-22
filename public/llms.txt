@@ -17,7 +17,7 @@ CommitDiary uses Stepper as its AI reliability engine. Stepper handles provider 
 
 ## Privacy
 
-CommitDiary does not need a full repository upload for basic reporting. Reports use commit metadata, file paths, categories, components, and diff summaries. AI reports are assisted summaries and do not replace code review, testing, or engineering judgment.
+CommitDiary does not upload the whole repository. Authenticated cloud reports use commit metadata, file paths, diff statistics, and bounded sampled patch excerpts. AI reports are assisted summaries and do not replace code review, testing, or engineering judgment.
 
 ## Important links
 

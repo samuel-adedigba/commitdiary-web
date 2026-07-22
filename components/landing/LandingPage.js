@@ -366,7 +366,7 @@ export default function LandingPage() {
               <p className={styles.eyebrow}>Developer trust</p>
               <h2 id="privacy-title">Summarize the work without uploading the whole repository.</h2>
               <p>
-                CommitDiary uses commit metadata, file paths, categories, components, and diff summaries. It keeps a local journal and syncs authenticated data for cloud reports and sharing.
+                CommitDiary never uploads the whole repository. It keeps a local journal, then authenticated cloud reporting sends commit metadata and bounded evidence made from diff statistics and sampled patch excerpts.
               </p>
               <Link href="/privacy" className={styles.darkInlineLink}>
                 Read how CommitDiary handles data <ArrowIcon />

@@ -123,12 +123,12 @@ The dashboard allows users to configure Discord webhooks for receiving commit re
 
 ### Webhook Features
 
-- ✅ **Rich Embeds**: Beautiful Discord messages with commit details, AI summaries, and metadata
-- 🔒 **Secure**: HMAC-SHA256 signature verification for all webhook deliveries
+- ✅ **Complete Rich Embeds**: Long reports continue in ordered messages without dropping report sections
+- 🔒 **Safe Mentions**: Report text cannot trigger Discord mentions
 - 📊 **Statistics**: View delivery success rate, last delivery time, and failure count
 - 📝 **Delivery Logs**: Track all webhook deliveries with status codes and error messages
 - 🔄 **Retry Logic**: Automatic exponential backoff retry for failed deliveries
-- ⚡ **Rate Limiting**: Respects Discord's 30 requests/minute limit with intelligent queuing
+- ⚡ **Rate Limiting**: Queues deliveries and follows Discord's response-specific retry timing
 
 ### Webhook Notification Format
 
@@ -144,6 +144,8 @@ Reports are delivered as Discord embeds with:
   - Rationale and impact analysis
   - Next steps suggestions
 - **Footer**: Generation time and metadata
+
+When a report exceeds Discord's per-message limits, CommitDiary sends numbered continuation messages in order until every report section is delivered.
 
 ---
 

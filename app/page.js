@@ -49,7 +49,7 @@ const faqItems = [
   ],
   [
     "Does CommitDiary upload my whole repository?",
-    "No. Basic reporting uses commit metadata, file paths, categories, components, and diff summaries instead of a full repository upload.",
+    "No. Authenticated cloud reporting sends commit metadata and bounded diff evidence, including sampled patch excerpts, instead of the whole repository.",
   ],
   [
     "What is Stepper?",

@@ -178,12 +178,12 @@ export const faqs = [
   {
     question: "How does CommitDiary work?",
     answer:
-      "The VS Code extension discovers your commits and analyzes their metadata, changed files, categories, components, and diff summaries. Authenticated sync can then generate reports, dashboards, badges, and notifications.",
+      "The VS Code extension discovers your commits and keeps a local journal. Authenticated sync can send commit metadata and bounded diff evidence to generate reports, dashboards, badges, and notifications.",
   },
   {
     question: "Does CommitDiary upload my whole repository?",
     answer:
-      "No. Basic reporting uses commit metadata, file paths, categories, components, and diff summaries. CommitDiary does not need a full repository upload to describe your work.",
+      "No. Authenticated cloud reporting sends commit metadata, file paths, diff statistics, and sampled patch excerpts within a fixed size limit—not the whole repository.",
   },
   {
     question: "What does Stepper do?",
