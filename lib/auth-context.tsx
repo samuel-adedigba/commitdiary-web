@@ -6,6 +6,7 @@ interface AuthContextType {
     user: any | null
     loading: boolean
     signOut: () => Promise<void>
+    refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -14,13 +15,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<any | null>(null)
     const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
-        fetch('/api/auth/user', { cache: 'no-store' }).then(async (response) => {
-            if (!response.ok) return null
+    const refreshUser = async () => {
+        try {
+            const response = await fetch('/api/auth/user', { cache: 'no-store' })
+            if (!response.ok) {
+                setUser(null)
+                return
+            }
             const payload = await response.json()
-            return payload.user ?? null
-        }).then((user) => {
-            setUser(user)
+            setUser(payload.user ?? null)
+        } catch {
+            // Keep the current session state on transient refresh failures.
+        }
+    }
+
+    useEffect(() => {
+        refreshUser().then(() => {
             setLoading(false)
         }).catch(() => {
             setLoading(false)
@@ -35,7 +45,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const value = {
         user,
         loading,
-        signOut
+        signOut,
+        refreshUser,
     }
 
     return (

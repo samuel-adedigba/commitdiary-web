@@ -6,6 +6,7 @@ import { useState } from "react";
 import { FaGithub, FaGoogle } from "react-icons/fa";
 import AuthShell from "components/auth/AuthShell";
 import styles from "components/auth/auth.module.scss";
+import PasswordField from "components/auth/PasswordField";
 
 const signInFields = [
   {
@@ -121,18 +122,24 @@ const SignIn = () => {
         aria-labelledby="signIn-form-title"
         aria-busy={loading}
       >
-        {signInFields.map((field) => (
+        {signInFields.map((field) => field.id === "password" ? (
+          <PasswordField
+            key={field.id}
+            {...field}
+            value={formData[field.id]}
+            onChange={handleChange}
+            error={undefined}
+            disabled={loading}
+            action={(
+              <Link href="/authentication/forget-password" className={styles.fieldAction}>
+                Reset password
+              </Link>
+            )}
+          />
+        ) : (
           <Form.Group key={field.id} controlId={field.id}>
             <div className={styles.fieldLabelRow}>
               <Form.Label>{field.label}</Form.Label>
-              {field.id === "password" ? (
-                <Link
-                  href="/authentication/forget-password"
-                  className={styles.fieldAction}
-                >
-                  Reset password
-                </Link>
-              ) : null}
             </div>
             <Form.Control
               className={styles.input}

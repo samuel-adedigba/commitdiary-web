@@ -663,7 +663,7 @@ export interface WebhookLog {
 }
 
 export interface WebhookUpdatePayload {
-    discord_webhook_url: string
+    discord_webhook_url?: string
     enabled?: boolean
     events?: string[]
 }

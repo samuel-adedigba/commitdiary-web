@@ -1,136 +1,118 @@
-// import node module libraries
-import { Col, Row, Form, Card, Button, Image } from 'react-bootstrap';
+"use client";
 
-// import hooks
-import useMounted from 'hooks/useMounted';
+import { useRef, useState } from "react";
+import { Button, Card, Col, Form, Image, Row } from "react-bootstrap";
+import { useAuth } from "lib/auth-context";
+import { getProfileAvatarUrl, getProfileCoverUrl } from "lib/profilePresentation";
 
-const GeneralSetting = () => {
-  const hasMounted = useMounted();
+export default function GeneralSetting() {
+  const { user, loading, refreshUser } = useAuth();
+  const [fullName, setFullName] = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [coverUrl, setCoverUrl] = useState("");
+  const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+  const avatarInput = useRef(null);
+  const coverInput = useRef(null);
+  const metadata = user?.user_metadata || {};
+  const displayedAvatar = avatarUrl || getProfileAvatarUrl(user);
+  const displayedCover = coverUrl || getProfileCoverUrl(user);
+
+  const saveProfile = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/auth/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ full_name: fullName ?? metadata.full_name ?? "" }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "We could not save your profile.");
+      await refreshUser();
+      setMessage("Profile saved.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "We could not save your profile.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const uploadPhoto = async (kind, file) => {
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
+    if (kind === "avatar") setAvatarUrl(preview);
+    else setCoverUrl(preview);
+    const formData = new FormData();
+    formData.append("kind", kind);
+    formData.append("file", file);
+    setMessage("");
+    try {
+      const response = await fetch("/api/auth/profile", { method: "POST", body: formData });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "We could not upload that image.");
+      if (kind === "avatar") setAvatarUrl(payload.url);
+      else setCoverUrl(payload.url);
+      await refreshUser();
+      setMessage(`${kind === "avatar" ? "Profile" : "Cover"} photo updated.`);
+    } catch (error) {
+      if (kind === "avatar") setAvatarUrl("");
+      else setCoverUrl("");
+      setMessage(error instanceof Error ? error.message : "We could not upload that image.");
+    } finally {
+      URL.revokeObjectURL(preview);
+    }
+  };
+
+  if (loading) return null;
 
   return (
     <Row className="mb-8">
       <Col xl={3} lg={4} md={12} xs={12}>
         <div className="mb-4 mb-lg-0">
-          <h4 className="mb-1">General Setting</h4>
-          <p className="mb-0 fs-5 text-muted">Profile configuration settings </p>
+          <h4 className="mb-1">Account settings</h4>
+          <p className="mb-0 fs-5 text-muted">Manage your name and profile photos.</p>
         </div>
       </Col>
       <Col xl={9} lg={8} md={12} xs={12}>
         <Card>
-          {/* card body */}
           <Card.Body>
-            <div className=" mb-6">
-              <h4 className="mb-1">General Settings</h4>
-            </div>
-            <Row className="align-items-center mb-8">
-              <Col md={3} className="mb-3 mb-md-0">
-                <h5 className="mb-0">Avatar</h5>
-              </Col>
-              <Col md={9}>
-                <div className="d-flex align-items-center">
-                  <div className="me-3">
-                    <Image src="/images/avatar/avatar-5.jpg" className="rounded-circle avatar avatar-lg" alt="" />
-                  </div>
-                  <div>
-                    <Button variant="outline-white" className="me-2" type="submit">Change </Button>
-                    <Button variant="outline-white" type="submit">Remove </Button>
-                  </div>
-                </div>
-              </Col>
-            </Row>
-            {/* col */}
-            <Row className="mb-8">
-              <Col md={3} className="mb-3 mb-md-0">
-                {/* heading */}
-                <h5 className="mb-0">Cover photo</h5>
-              </Col>
-              <Col md={9}>
-                {/* Upload placeholder */}
+            <h4 className="mb-6">Profile</h4>
+            <div className="mb-6">
+              <h5 className="mb-1">Profile photo</h5>
+              <p className="text-muted mb-3">Your Google photo appears here automatically when available.</p>
+              <div className="d-flex align-items-center gap-3">
+                <Image src={displayedAvatar} className="rounded-circle avatar avatar-lg" alt="Profile" />
                 <div>
-                  <p className="text-muted">Upload a cover photo</p>
-                  <Button variant="outline-white" type="button">Upload </Button>
+                  <input ref={avatarInput} hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => uploadPhoto("avatar", event.target.files?.[0])} />
+                  <Button variant="outline-white" type="button" onClick={() => avatarInput.current?.click()}>Upload new photo</Button>
                 </div>
-              </Col>
-            </Row>
-            <div>
-              <div className="mb-6">
-                <h4 className="mb-1">Basic information</h4>
               </div>
-              {hasMounted && 
-              <Form>
-                <Row className="mb-3">
-                  <Form.Label className="col-sm-4 col-form-label form-label" htmlFor="fullName">Full name</Form.Label>
-                  <Col sm={4} className="mb-3 mb-lg-0">
-                    <Form.Control type="text" placeholder="First name" id="fullName" required />
-                  </Col>
-                  <Col sm={4}>
-                    <Form.Control type="text" placeholder="Last name" id="lastName" required />
-                  </Col>
-                </Row>
-                {/* row */}
-                <Row className="mb-3">
-                <Form.Label className="col-sm-4 col-form-label form-label" htmlFor="email">Email</Form.Label>
-                  <Col md={8} xs={12}>
-                    <Form.Control type="email" placeholder="Email" id="email" required />
-                  </Col>
-                </Row>
-                {/* row */}
-                <Row className="mb-3">
-                  <Form.Label className="col-sm-4" htmlFor="phone">Phone <span className="text-muted">(Optional)</span></Form.Label>
-                  <Col md={8} xs={12}>
-                    <Form.Control type="text" placeholder="Enter Phone" id="phone" />
-                  </Col>
-                </Row>
-
-                {/* Location */}
-                <Row className="mb-3">
-                  <Form.Label className="col-sm-4" htmlFor="country">Location</Form.Label>
-                  <Col md={8} xs={12}>
-                    <Form.Control type="text" placeholder="Enter Country" id="country" />
-                  </Col>
-                </Row>
-
-                {/* Address Line One */}
-                <Row className="mb-3">
-                  <Form.Label className="col-sm-4" htmlFor="addressLine">Address line 1</Form.Label>
-                  <Col md={8} xs={12}>
-                    <Form.Control type="text" placeholder="Enter Address line 1" id="addressLine" required />
-                  </Col>
-                </Row>
-
-                {/* Address Line Two */}
-                <Row className="mb-3">
-                  <Form.Label className="col-sm-4" htmlFor="addressLineTwo">Address line 2</Form.Label>
-                  <Col md={8} xs={12}>
-                    <Form.Control type="text" placeholder="Enter Address line 2" id="addressLineTwo" required />
-                  </Col>
-                </Row>
-
-
-                {/* Zip code */}
-                <Row className="align-items-center">
-                  <Form.Label className="col-sm-4" htmlFor="zipcode">Zip code</Form.Label>
-
-                  <Col md={8} xs={12}>
-                    <Form.Control type="text" placeholder="Enter Zip code" id="zipcode" required />
-                  </Col>
-
-                  <Col md={{ offset: 4, span: 8 }} xs={12} className="mt-4">
-                    <Button variant="primary" type="submit">
-                      Save Changes
-                    </Button>
-                  </Col>
-
-                </Row>
-              </Form>
-              }
             </div>
+            <div className="mb-6">
+              <h5 className="mb-1">Cover photo</h5>
+              <p className="text-muted mb-3">Add a wide image to personalize your profile.</p>
+              {displayedCover ? <Image src={displayedCover} className="w-100 rounded mb-3" alt="Cover" style={{ maxHeight: 180, objectFit: "cover" }} /> : null}
+              <input ref={coverInput} hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => uploadPhoto("cover", event.target.files?.[0])} />
+              <Button variant="outline-white" type="button" onClick={() => coverInput.current?.click()}>Upload cover photo</Button>
+            </div>
+            <Form onSubmit={saveProfile}>
+              <Form.Group className="mb-3" controlId="fullName">
+                <Form.Label>Full name</Form.Label>
+                <Form.Control value={fullName ?? metadata.full_name ?? ""} onChange={(event) => setFullName(event.target.value)} placeholder="Your name" maxLength={120} />
+              </Form.Group>
+              <Form.Group className="mb-4" controlId="email">
+                <Form.Label>Email address</Form.Label>
+                <Form.Control type="email" value={user?.email || ""} readOnly aria-describedby="email-help" />
+                <Form.Text id="email-help">Your sign-in email is managed by your authentication provider.</Form.Text>
+              </Form.Group>
+              {message ? <p role="status" className="text-muted">{message}</p> : null}
+              <Button variant="primary" type="submit" disabled={saving}>{saving ? "Saving…" : "Save profile"}</Button>
+            </Form>
           </Card.Body>
         </Card>
-
       </Col>
     </Row>
-  )
+  );
 }
-
-export default GeneralSetting

@@ -178,7 +178,9 @@ export default function WebhookSettings() {
       const data = await fetchWebhookSettings();
       if (data.configured) {
         setSettings(data);
-        setWebhookUrl(data.discord_webhook_url || "");
+        // The API intentionally returns a masked URL. Keep the input blank so
+        // saving event changes does not overwrite the stored secret.
+        setWebhookUrl("");
         setEnabled(data.enabled ?? true);
         setSelectedEvents(data.events || selectedEvents);
       }
@@ -186,7 +188,7 @@ export default function WebhookSettings() {
   }
 
   async function handleSave() {
-    if (!webhookUrl.trim()) {
+    if (!webhookUrl.trim() && !settings?.configured) {
       setError("Please enter a Discord webhook URL");
       return;
     }
@@ -194,7 +196,7 @@ export default function WebhookSettings() {
     // Validate Discord webhook URL format
     const webhookPattern =
       /^https:\/\/discord\.com\/api\/webhooks\/\d+\/[\w-]+$/;
-    if (!webhookPattern.test(webhookUrl)) {
+    if (webhookUrl.trim() && !webhookPattern.test(webhookUrl.trim())) {
       setError(
         "Invalid Discord webhook URL format. Please check the URL and try again.",
       );
@@ -207,7 +209,7 @@ export default function WebhookSettings() {
       setSuccess(null);
 
       const result = await updateWebhookSettings({
-        discord_webhook_url: webhookUrl,
+        ...(webhookUrl.trim() ? { discord_webhook_url: webhookUrl.trim() } : {}),
         enabled,
         events: selectedEvents,
       });
@@ -411,10 +413,10 @@ export default function WebhookSettings() {
 
         {/* Webhook URL Input */}
         <Form.Group className="mb-3">
-          <Form.Label>Discord Webhook URL *</Form.Label>
+          <Form.Label>Discord Webhook URL {settings?.configured ? "(leave blank to keep current)" : "*"}</Form.Label>
           <Form.Control
             type="url"
-            placeholder="https://discord.com/api/webhooks/..."
+            placeholder={settings?.configured ? "Stored securely — enter a new URL to replace it" : "https://discord.com/api/webhooks/..."}
             value={webhookUrl}
             onChange={(e) => setWebhookUrl(e.target.value)}
             disabled={loading}

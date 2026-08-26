@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import AuthShell from "components/auth/AuthShell";
 import styles from "components/auth/auth.module.scss";
+import PasswordField from "components/auth/PasswordField";
 
 const resetFields = [
   {
@@ -89,31 +90,19 @@ export default function ResetPassword() {
         noValidate
       >
         {resetFields.map((field) => {
-          const errorId = fieldErrors[field.id] ? `${field.id}-error` : undefined;
-
           return (
-            <Form.Group key={field.id} controlId={field.id}>
-              <Form.Label>{field.label}</Form.Label>
-              <Form.Control
-                className={styles.input}
-                type="password"
-                name={field.id}
-                autoComplete="new-password"
-                placeholder={field.placeholder}
-                minLength={8}
-                required
-                value={formData[field.id]}
-                onChange={handleChange}
-                aria-describedby={errorId}
-                aria-invalid={fieldErrors[field.id] ? "true" : undefined}
-                disabled={loading}
-              />
-              {fieldErrors[field.id] ? (
-                <p id={errorId} className={styles.fieldError} role="alert">
-                  {fieldErrors[field.id]}
-                </p>
-              ) : null}
-            </Form.Group>
+            <PasswordField
+              key={field.id}
+              id={field.id}
+              name={field.id}
+              label={field.label}
+              placeholder={field.placeholder}
+              value={formData[field.id]}
+              onChange={handleChange}
+              error={fieldErrors[field.id]}
+              autoComplete="new-password"
+              disabled={loading}
+            />
           );
         })}
 

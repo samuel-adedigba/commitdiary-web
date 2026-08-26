@@ -69,7 +69,6 @@ const structuredData = [
     description:
       "CommitDiary turns Git commit history into clear engineering work reports for standups, sprint reviews, retrospectives, release notes, Discord updates, and developer portfolios.",
     downloadUrl: siteConfig.marketplaceUrl || undefined,
-    codeRepository: siteConfig.githubUrl || undefined,
     featureList: [
       "Automatic Git commit discovery",
       "Commit categorization",
@@ -92,10 +91,7 @@ const structuredData = [
     name: "CommitDiary",
     url: siteUrl,
     logo: siteUrl ? `${siteUrl}/images/brand/commitdiary-mark-512.png` : undefined,
-    sameAs: [
-      siteConfig.githubUrl,
-      siteConfig.marketplaceUrl,
-    ].filter(Boolean),
+    sameAs: [siteConfig.marketplaceUrl].filter(Boolean),
   },
   {
     "@context": "https://schema.org",

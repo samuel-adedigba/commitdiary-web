@@ -177,9 +177,7 @@ pnpm dlx vercel env add NEXT_PUBLIC_APP_URL preview --cwd packages/web-dashboard
 pnpm dlx vercel env add NEXT_PUBLIC_SUPABASE_URL production --cwd packages/web-dashboard
 pnpm dlx vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production --cwd packages/web-dashboard
 pnpm dlx vercel env add API_URL production --cwd packages/web-dashboard
-pnpm dlx vercel env add NEXT_PUBLIC_GITHUB_URL production --cwd packages/web-dashboard
 pnpm dlx vercel env add NEXT_PUBLIC_MARKETPLACE_URL production --cwd packages/web-dashboard
-pnpm dlx vercel env add NEXT_PUBLIC_STEPPER_URL production --cwd packages/web-dashboard
 pnpm dlx vercel env add NEXT_PUBLIC_DOCS_URL production --cwd packages/web-dashboard
 pnpm dlx vercel env add NEXT_PUBLIC_DISCORD_DOCS_URL production --cwd packages/web-dashboard
 ```

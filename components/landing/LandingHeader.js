@@ -29,8 +29,8 @@ export default function LandingHeader() {
         <NavigationLinks />
 
         <div className={styles.headerActions}>
-          <Link className={styles.textLink} href="/github">
-            GitHub
+          <Link className={styles.textLink} href="/pricing">
+            Pricing
           </Link>
           <Link className={styles.compactCta} href="/install">
             Install extension
@@ -51,7 +51,7 @@ export default function LandingHeader() {
               Install VS Code extension
             </Link>
             <div className={styles.mobileUtilityLinks}>
-              <Link href="/github">View GitHub</Link>
+              <Link href="/pricing">Pricing</Link>
               <Link href="/login">Sign in</Link>
             </div>
           </div>

@@ -5,7 +5,7 @@
   "packageManager": "pnpm@10.33.1",
   "author": {
     "name": "CommitDiary Team",
-    "url": "https://github.com/samuel-adedigba/Commit-Diary-Vscode-Extension"
+    "url": "https://commitdiary.dev"
   },
   "keywords": [
     "react",

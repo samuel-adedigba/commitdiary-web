@@ -1,16 +1,8 @@
-import { configuredUrl, siteConfig } from "../../lib/siteConfig";
-
-export const productLinks = {
-  github: configuredUrl(siteConfig.githubUrl),
-  marketplace: configuredUrl(siteConfig.marketplaceUrl),
-  stepper: configuredUrl(siteConfig.stepperUrl),
-};
-
 export const navigation = [
   { label: "Features", href: "/features" },
   { label: "How it works", href: "/how-it-works" },
-  { label: "Templates", href: "/templates" },
-  { label: "Privacy", href: "/privacy" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "Setup", href: "/#setup" },
   { label: "Docs", href: "/docs" },
 ];
 
@@ -45,7 +37,88 @@ export const workflowSteps = [
   {
     number: "05",
     title: "Use the update",
-    text: "Bring the result to standups, reviews, Discord, release notes, or your portfolio.",
+    text: "Bring the result to updates, reviews, Discord, or portfolio evidence.",
+  },
+];
+
+export const setupSteps = [
+  {
+    number: "01",
+    title: "Install the VS Code extension",
+    text: "Install CommitDiary from the VS Code Marketplace, then open a Git repository in VS Code.",
+  },
+  {
+    number: "02",
+    title: "Create your CommitDiary account",
+    text: "Sign up on the dashboard so your local journal can connect to your private workspace.",
+  },
+  {
+    number: "03",
+    title: "Create an API key",
+    text: "Open Settings → API keys in the dashboard and create a key for this editor installation.",
+  },
+  {
+    number: "04",
+    title: "Connect the extension",
+    text: "Run “CommitDiary: Setup Cloud Sync” in VS Code and paste the key into the secure prompt. The extension stores it in VS Code SecretStorage.",
+  },
+  {
+    number: "05",
+    title: "Choose what to sync",
+    text: "Enable a repository, make a commit, and let the extension queue and sync bounded commit evidence when you are ready.",
+  },
+  {
+    number: "06",
+    title: "Configure reports and Discord",
+    text: "In dashboard Settings, choose report preferences and add a Discord webhook if you want delivery to a team channel. Webhook URLs are masked after saving.",
+  },
+];
+
+export const pricingPlans = [
+  {
+    id: "local",
+    name: "Local",
+    price: "$0",
+    cadence: "forever",
+    label: "Start here",
+    description: "Keep a private work journal in VS Code while you decide if cloud reporting is useful.",
+    features: ["Commit discovery", "Local journal", "Offline queue", "No card required"],
+    cta: "Install the extension",
+    href: "/install",
+  },
+  {
+    id: "founding-solo",
+    name: "Founding Solo",
+    price: "$5",
+    cadence: "per month",
+    label: "Early access",
+    description: "A low-cost hosted plan for developers who want reports, history, and one Discord destination.",
+    features: ["Up to 5 repositories", "Hosted reports", "50 report jobs / month", "1 Discord webhook"],
+    cta: "See what’s included",
+    href: "/pricing",
+    featured: true,
+  },
+  {
+    id: "solo",
+    name: "Solo",
+    price: "$8",
+    cadence: "per month",
+    label: "Planned launch",
+    description: "For an active personal portfolio, multiple repositories, and regular reporting.",
+    features: ["Up to 15 repositories", "Hosted reports", "150 report jobs / month", "3 Discord webhooks"],
+    cta: "See launch details",
+    href: "/pricing",
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    price: "$15",
+    cadence: "per month",
+    label: "Planned launch",
+    description: "For public work, client delivery, and a larger reporting allowance across projects.",
+    features: ["Unlimited repositories", "500 report jobs / month", "10 Discord webhooks", "Priority support"],
+    cta: "See launch details",
+    href: "/pricing",
   },
 ];
 
@@ -69,7 +142,7 @@ export const featureGroups = [
       "Automatic commit discovery",
       "Local commit journal",
       "Work categories and components",
-      "Daily and weekly summaries",
+      "Time-range metrics and commit reports",
       "Public activity badges",
     ],
   },
@@ -203,7 +276,7 @@ export const faqs = [
   {
     question: "Can CommitDiary create standup and release updates?",
     answer:
-      "Yes. Its structured reports can be shaped into standups, weekly updates, sprint reviews, technical debt reports, release notes, and portfolio summaries.",
+      "Its current product generates structured per-commit reports. You can edit and reuse them for updates and portfolio evidence; aggregate weekly and release-note workflows are planned separately.",
   },
   {
     question: "Does CommitDiary replace code review?",
@@ -226,9 +299,9 @@ export const footerGroups = [
     title: "Developers",
     links: [
       ["Documentation", "/docs"],
-      ["GitHub repository", "/github"],
       ["VS Code Marketplace", "/marketplace"],
-      ["Stepper source", productLinks.stepper],
+      ["Setup guide", "/#setup"],
+      ["Discord setup", "/discord"],
     ],
   },
   {
@@ -237,7 +310,7 @@ export const footerGroups = [
       ["Install the extension", "/install"],
       ["Sign in", "/login"],
       ["Open dashboard", "/dashboard"],
-      ["Discord setup", "/discord"],
+      ["Pricing", "/pricing"],
     ],
   },
 ];

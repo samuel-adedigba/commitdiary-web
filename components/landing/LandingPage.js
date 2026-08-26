@@ -6,7 +6,8 @@ import {
   faqs,
   featureGroups,
   personas,
-  productLinks,
+  pricingPlans,
+  setupSteps,
   stepperCapabilities,
   templates,
   useCases,
@@ -86,8 +87,8 @@ export default function LandingPage() {
                 <Link href="/install" className={styles.primaryButton}>
                   Install the VS Code extension <ArrowIcon />
                 </Link>
-                <Link href="/github" className={styles.secondaryButton}>
-                  View the source on GitHub
+                <Link href="/pricing" className={styles.secondaryButton}>
+                  See pricing and limits
                 </Link>
               </div>
               <p className={styles.trustLine}>
@@ -122,7 +123,7 @@ export default function LandingPage() {
             <h2 id="definition-title">A work journal built from the development you already do.</h2>
           </div>
           <p>
-            CommitDiary is a developer work journal that turns Git history into clear, human-readable engineering reports for standups, sprint reviews, retrospectives, release notes, and portfolios.
+            CommitDiary is a developer work journal that turns selected Git history into clear, human-readable engineering reports you can edit and reuse for updates, reviews, and portfolio evidence.
           </p>
         </section>
 
@@ -167,6 +168,29 @@ export default function LandingPage() {
           </ol>
         </section>
 
+        <section id="setup" className={styles.setupSection} aria-labelledby="setup-title">
+          <SectionHeading
+            label="Setup walkthrough"
+            title="From extension install to your first useful report."
+            text="You can stay local, or connect the dashboard when you want hosted reports, sharing, and Discord delivery."
+          />
+          <ol className={styles.setupGrid}>
+            {setupSteps.map((step) => (
+              <li key={step.number} className={styles.setupCard}>
+                <span className={styles.stepNumber}>{step.number}</span>
+                <div>
+                  <h3>{step.title}</h3>
+                  <p>{step.text}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <div className={styles.setupActions}>
+            <Link href="/docs" className={styles.inlineLink}>Read the full setup guide <ArrowIcon /></Link>
+            <Link href="/discord" className={styles.inlineLink}>Configure Discord delivery <ArrowIcon /></Link>
+          </div>
+        </section>
+
         <section className={styles.stepperSection} aria-labelledby="stepper-title">
           <div className={styles.stepperGrid}>
             <div className={styles.stepperCopy}>
@@ -176,8 +200,8 @@ export default function LandingPage() {
               <p>
                 Stepper powers CommitDiary’s AI report generation. It sends each job to a configured provider, handles the rough edges, and returns a predictable report your workflow can use.
               </p>
-              <Link href={productLinks.stepper} className={styles.darkInlineLink}>
-                Explore Stepper on GitHub <ArrowIcon />
+              <Link href="/#features" className={styles.darkInlineLink}>
+                See the reliability features <ArrowIcon />
               </Link>
             </div>
 
@@ -321,7 +345,7 @@ export default function LandingPage() {
               <li><b>2</b> refactors</li>
               <li><b>3</b> tests</li>
             </ul>
-            <span className={styles.badgeVerified}>CommitDiary verified</span>
+            <span className={styles.badgeVerified}>Captured by CommitDiary</span>
           </div>
         </section>
 
@@ -418,23 +442,28 @@ export default function LandingPage() {
             <p className={styles.eyebrow}>Start with your next commit</p>
             <h2 id="access-title">The extension is the front door.</h2>
             <p>
-              Install CommitDiary in VS Code, create your account, connect with an API key, and let your work journal build from there.
+              Install CommitDiary in VS Code, create your account, securely add your API key through the setup command, and let your work journal build from there.
             </p>
           </div>
-          <div className={styles.accessCard}>
-            <div>
-              <span>CommitDiary for VS Code</span>
-              <strong>Install from the Marketplace</strong>
-            </div>
-            <ul>
-              <li>Automatic commit discovery</li>
-              <li>Local work journal</li>
-              <li>Cloud reports when connected</li>
-            </ul>
-            <Link href="/install" className={styles.primaryButton}>
-              Install CommitDiary <ArrowIcon />
-            </Link>
+          <div className={styles.pricingGrid}>
+            {pricingPlans.map((plan) => (
+              <article key={plan.id} className={`${styles.pricingCard} ${plan.featured ? styles.pricingCardFeatured : ""}`}>
+                <div className={styles.pricingCardHeader}>
+                  <span>{plan.label}</span>
+                  <h3>{plan.name}</h3>
+                  <p>{plan.description}</p>
+                </div>
+                <div className={styles.price}><strong>{plan.price}</strong><span>{plan.cadence}</span></div>
+                <ul>
+                  {plan.features.map((feature) => <li key={feature}><span aria-hidden="true">✓</span>{feature}</li>)}
+                </ul>
+                <Link href={plan.href} className={plan.featured ? styles.primaryButton : styles.secondaryButton}>
+                  {plan.cta} <ArrowIcon />
+                </Link>
+              </article>
+            ))}
           </div>
+          <p className={styles.pricingNote}>Paid plans are launch pricing and will open as hosted billing leaves beta. Start free locally today; no card is required.</p>
         </section>
 
         <section className={styles.faqSection} aria-labelledby="faq-title">
@@ -460,7 +489,7 @@ export default function LandingPage() {
           <p className={styles.eyebrow}>CommitDiary in one paragraph</p>
           <h2 id="summary-title">A developer work journal powered by Git history and reliable AI reports.</h2>
           <p>
-            CommitDiary turns commits, changed files, categories, components, and diff summaries into clear reports for standups, weekly updates, sprint reviews, retrospectives, release notes, Discord notifications, and public activity badges. Stepper handles provider routing, retries, validation, failover, callbacks, and structured AI output.
+            CommitDiary turns commits, changed files, categories, components, and bounded diff summaries into clear per-commit reports, Discord notifications, and public activity badges. Stepper handles provider routing, retries, validation, failover, callbacks, and structured AI output.
           </p>
         </section>
 
@@ -475,8 +504,8 @@ export default function LandingPage() {
             <Link href="/install" className={styles.lightButton}>
               Install the extension <ArrowIcon />
             </Link>
-            <Link href="/github" className={styles.outlineLightButton}>
-              Star CommitDiary on GitHub
+            <Link href="/pricing" className={styles.outlineLightButton}>
+              See the plans
             </Link>
           </div>
         </section>

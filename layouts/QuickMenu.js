@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Dropdown, Image, ListGroup } from "react-bootstrap";
 import { useAuth } from "../lib/auth-context";
+import { getProfileAvatarUrl } from "../lib/profilePresentation";
 
 const UTILITY_LINKS = [
   { href: "/marketplace", label: "VS Code Marketplace", icon: "package" },
@@ -86,7 +87,7 @@ const QuickMenu = () => {
           <span className="avatar avatar-md avatar-indicators avatar-online">
             <Image
               alt=""
-              src={user?.user_metadata?.avatar_url || "/images/avatar/avatar-1.jpg"}
+              src={getProfileAvatarUrl(user)}
               className="rounded-circle"
             />
           </span>

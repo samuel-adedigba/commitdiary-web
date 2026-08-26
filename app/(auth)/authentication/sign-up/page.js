@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import AuthShell from "components/auth/AuthShell";
 import styles from "components/auth/auth.module.scss";
+import PasswordField from "components/auth/PasswordField";
 
 const signUpFields = [
   {
@@ -153,6 +154,19 @@ const SignUp = () => {
           const helpId = field.help ? `${field.id}-help` : undefined;
           const errorId = fieldErrors[field.id] ? `${field.id}-error` : undefined;
           const describedBy = [helpId, errorId].filter(Boolean).join(" ") || undefined;
+
+          if (field.type === "password") {
+            return (
+              <PasswordField
+                key={field.id}
+                {...field}
+                value={formData[field.id]}
+                onChange={handleChange}
+                error={fieldErrors[field.id]}
+                disabled={loading}
+              />
+            );
+          }
 
           return (
             <Form.Group key={field.id} controlId={field.id}>

@@ -8,8 +8,8 @@ CommitDiary is a developer work journal that turns Git history into clear, human
 - Stores a local journal of developer work.
 - Categorizes features, fixes, refactors, tests, documentation, and maintenance.
 - Identifies changed files and affected components.
-- Produces structured reports for standups, weekly updates, sprint reviews, retrospectives, release notes, and portfolios.
-- Supports offline queueing, authenticated cloud sync, Discord notifications, public reports, and activity badges.
+- Produces structured per-commit reports that users can edit and reuse for updates and portfolio evidence.
+- Supports offline queueing, authenticated cloud sync, Discord notifications, public activity shares, and activity badges.
 
 ## Stepper
 
