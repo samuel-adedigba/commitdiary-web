@@ -36,10 +36,42 @@ export async function putProfileMedia(params: PutProfileMediaParams): Promise<Pu
   const ext = ALLOWED_TYPES[params.contentType];
   if (!ext) throw new Error("Unsupported content type");
 
+  const provider = getStorageProvider();
   // Stable asset ID + provider-neutral key (do not use timestamp-dependent naming elsewhere)
   const { randomUUID } = await import("crypto");
   const path = `${params.userId}/${params.kind}-${randomUUID()}.${ext}`;
 
+  if (provider === "s3") {
+    // S3-compatible provider (AWS S3, MinIO, Supabase S3-compatible, etc.)
+    const bucket = process.env.S3_BUCKET || process.env.NEXT_PUBLIC_S3_BUCKET;
+    const region = process.env.S3_REGION || process.env.AWS_REGION || "us-east-1";
+    const endpoint = process.env.S3_ENDPOINT || process.env.NEXT_PUBLIC_S3_ENDPOINT;
+    const accessKeyId = process.env.S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY;
+    const publicBaseUrl = process.env.S3_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL;
+
+    if (!bucket) throw new Error("S3_BUCKET not configured for STORAGE_PROVIDER=s3");
+    // Use AWS SDK v3 when credentials/bucket are present; fallback to error if not configured
+    const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+    const s3 = new S3Client({
+      region,
+      ...(endpoint ? { endpoint, forcePathStyle: true } : {}),
+      ...(accessKeyId && secretAccessKey ? { credentials: { accessKeyId, secretAccessKey } } : {}),
+    });
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: path,
+        Body: params.buffer,
+        ContentType: params.contentType,
+        CacheControl: "public, max-age=3600",
+      }),
+    );
+    const publicUrl = publicBaseUrl ? `${publicBaseUrl.replace(/\/$/, "")}/${path}` : `https://${bucket}.s3.${region}.amazonaws.com/${path}`;
+    return { path, publicUrl };
+  }
+
+  // Default: Supabase Storage via authProvider (current production)
   const res = await authProvider.uploadProfileMedia(params.accessToken, path, params.buffer, params.contentType);
   if (!res.ok) {
     const body = await res.text().catch(() => "");
@@ -50,6 +82,14 @@ export async function putProfileMedia(params: PutProfileMediaParams): Promise<Pu
 }
 
 export function getPublicUrl(path: string) {
+  const provider = getStorageProvider();
+  if (provider === "s3") {
+    const bucket = process.env.S3_BUCKET || process.env.NEXT_PUBLIC_S3_BUCKET;
+    const region = process.env.S3_REGION || process.env.AWS_REGION || "us-east-1";
+    const publicBaseUrl = process.env.S3_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL;
+    if (publicBaseUrl) return `${publicBaseUrl.replace(/\/$/, "")}/${path}`;
+    if (bucket) return `https://${bucket}.s3.${region}.amazonaws.com/${path}`;
+  }
   return authProvider.publicUrlForProfileMedia(path);
 }
 

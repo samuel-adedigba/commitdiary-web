@@ -1,13 +1,22 @@
 /**
- * Auth provider adapter — isolates Supabase Auth behind a stable HttpOnly-cookie contract.
- * The dashboard currently uses Supabase Auth; this module is the single place that
- * constructs Supabase Auth URLs so a future provider swap changes only this file.
+ * Auth provider adapter — isolates Auth behind a stable HttpOnly-cookie contract.
+ * Supports pluggable providers via AUTH_PROVIDER / NEXT_PUBLIC_AUTH_PROVIDER.
+ * Default: "supabase" (current). Future: "api" (CommitDiary API-native JWT) or
+ * any external OIDC provider. Dashboard and middleware must not construct provider
+ * URLs outside this module — provider swap changes only this file.
  *
  * Keep cookie names stable (cd_sb_access_token etc.) so cutover changes configuration,
  * not product contracts.
  */
+const AUTH_PROVIDER = (
+  process.env.NEXT_PUBLIC_AUTH_PROVIDER ||
+  process.env.AUTH_PROVIDER ||
+  "supabase"
+).toLowerCase();
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "";
+const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "";
 
 const AUTH_REQUEST_TIMEOUT_MS = 10_000;
 
@@ -43,6 +52,9 @@ export type SessionTokens = {
 };
 
 export const authProvider = {
+  getProviderName() {
+    return AUTH_PROVIDER;
+  },
   getSupabaseUrl() {
     return SUPABASE_URL;
   },
@@ -50,10 +62,25 @@ export const authProvider = {
     return SUPABASE_ANON_KEY;
   },
   isConfigured() {
+    if (AUTH_PROVIDER !== "supabase") {
+      // Future providers (e.g., "api") use API_URL + JWT_SECRET; consider configured if API_URL present
+      return Boolean(API_URL);
+    }
     return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+  },
+  isSupabase() {
+    return AUTH_PROVIDER === "supabase";
   },
 
   async getUser(accessToken: string): Promise<AuthUser | null> {
+    if (AUTH_PROVIDER !== "supabase") {
+      if (!API_URL) return null;
+      const res = await fetchAuthProvider(`${API_URL}/v1/auth/user`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!res.ok) return null;
+      return res.json();
+    }
     requireSupabaseConfig();
     const res = await fetchAuthProvider(`${SUPABASE_URL}/auth/v1/user`, {
       headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${accessToken}` },
@@ -63,6 +90,16 @@ export const authProvider = {
   },
 
   async refreshSession(refreshToken: string): Promise<SessionTokens | null> {
+    if (AUTH_PROVIDER !== "supabase") {
+      if (!API_URL) return null;
+      const res = await fetchAuthProvider(`${API_URL}/v1/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      if (!res.ok) return null;
+      return res.json();
+    }
     requireSupabaseConfig();
     const res = await fetchAuthProvider(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
       method: "POST",

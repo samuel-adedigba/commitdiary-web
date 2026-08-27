@@ -44,10 +44,46 @@ export function subscribeToCommits(
 ): () => void {
   const provider = getRealtimeProvider();
   if (provider !== "supabase") {
-    // Future: SSE/WebSocket implementation polls or connects to `${API_URL}/v1/events?stream=commits`
-    // For now, no-op (polling fallback handled in useApiResource).
+    // Polling fallback — authoritative refetch via API, not raw postgres_changes
+    // Polls /v1/users/:userId/commits?limit=5 and diffs by id to emit INSERT/UPDATE
     onStatus?.("polling");
-    return () => {};
+    let lastIds = new Set<string | number>();
+    let initialized = false;
+    const poll = async () => {
+      try {
+        const res = await fetch(`/v1/users/${encodeURIComponent(userId)}/commits?limit=5&offset=0`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => null);
+        const commits: any[] = data?.commits || [];
+        if (!initialized) {
+          commits.forEach((c) => lastIds.add(c.id));
+          initialized = true;
+          return;
+        }
+        for (const c of commits) {
+          if (!lastIds.has(c.id)) {
+            lastIds.add(c.id);
+            onEvent({ type: "INSERT", commit: c });
+          }
+        }
+        // Simple LRU cap
+        if (lastIds.size > 100) {
+          const arr = Array.from(lastIds);
+          lastIds = new Set(arr.slice(-100));
+        }
+      } catch {}
+    };
+    poll();
+    const interval = setInterval(poll, 15000);
+    // Also poll on visibility change (user returns to tab)
+    const onVisible = () => {
+      if (document.visibilityState === "visible") poll();
+    };
+    if (typeof document !== "undefined") document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      if (typeof document !== "undefined") document.removeEventListener("visibilitychange", onVisible);
+    };
   }
 
   let channel: RealtimeChannel | null = null;
@@ -85,7 +121,45 @@ export function subscribeToReports(
   const provider = getRealtimeProvider();
   if (provider !== "supabase") {
     onStatus?.("polling");
-    return () => {};
+    // Polling fallback: poll report/job endpoints and emit when status changes
+    // For single commitId: poll /v1/commits/:id/report; for all: poll /v1/jobs/recovery or per-commit
+    let lastReportId: string | number | null = null;
+    let lastJobStatus: string | null = null;
+    const poll = async () => {
+      try {
+        if (commitId) {
+          const res = await fetch(`/v1/commits/${encodeURIComponent(String(commitId))}/report`, { cache: "no-store" });
+          if (!res.ok) return;
+          const data = await res.json().catch(() => null);
+          // Report completed: data.report or data.id indicates report exists
+          const report = data?.report || data;
+          if (report?.id && report.id !== lastReportId) {
+            lastReportId = report.id;
+            onEvent({ type: "report_completed", commitId, report });
+          }
+          // Job status: data.job or data.status
+          const job = data?.job;
+          if (job?.status && job.status !== lastJobStatus) {
+            lastJobStatus = job.status;
+            if (job.status === "failed") onEvent({ type: "report_failed", commitId, jobStatus: job });
+            else onEvent({ type: "job_status_change", commitId, jobStatus: job });
+          }
+        } else {
+          // For "all" — poll recent jobs via /v1/repos/reports or similar; lightweight no-op if not available
+          // Fallback: no polling for all when commitId is null to avoid excessive requests
+        }
+      } catch {}
+    };
+    poll();
+    const interval = setInterval(poll, 15000);
+    const onVisible = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") poll();
+    };
+    if (typeof document !== "undefined") document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      if (typeof document !== "undefined") document.removeEventListener("visibilitychange", onVisible);
+    };
   }
 
   let reportChannel: RealtimeChannel | null = null;
