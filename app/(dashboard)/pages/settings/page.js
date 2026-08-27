@@ -11,6 +11,7 @@ import { DeleteAccount, GeneralSetting } from 'sub-components'
 // import custom components
 import ApiKeyManager from '/components/custom/ApiKeyManager';
 import WebhookSettings from '/sub-components/settings/WebhookSettings';
+import BillingSettings from '/sub-components/settings/BillingSettings';
 
 const Settings = () => {
   return (
@@ -30,6 +31,17 @@ const Settings = () => {
         </Col>
         <Col lg={9} md={8} sm={12}>
           <ApiKeyManager />
+        </Col>
+      </Row>
+
+      {/* Billing */}
+      <Row className="mb-8">
+        <Col lg={3} md={4} sm={12}>
+          <h4>Billing</h4>
+          <p className="mb-0">Plan, usage, and subscription management</p>
+        </Col>
+        <Col lg={9} md={8} sm={12}>
+          <BillingSettings />
         </Col>
       </Row>
 

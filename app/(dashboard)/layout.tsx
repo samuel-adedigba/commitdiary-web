@@ -7,6 +7,7 @@ import "styles/datatable.css";
 import NavbarVertical from "/layouts/navbars/NavbarVertical";
 import NavbarTop from "/layouts/navbars/NavbarTop";
 import { AuthGuard } from "../../components/AuthGuard";
+import EntitlementBanner from "../../components/billing/EntitlementBanner";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -136,6 +137,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             />
           </div>
           <main id="dashboard-main-content" className="dashboard-main-content" tabIndex={-1}>
+            <div className="px-3 pt-3"><EntitlementBanner /></div>
             {children}
           </main>
         </div>

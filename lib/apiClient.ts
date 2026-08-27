@@ -1035,3 +1035,49 @@ export async function fetchWebhookLogs(options?: { limit?: number, offset?: numb
 
     return response.json()
 }
+
+export interface Entitlements {
+    plan: string
+    plan_name: string
+    cadence: string | null
+    status: string
+    access_active: boolean
+    features: string[]
+    limits: { repositories: number; ai_reports: number; discord_webhooks: number; hosted_history_days: number | null }
+    usage: { ai_reports_reserved: number; ai_reports_completed: number; discord_deliveries: number; synced_commits: number }
+    usage_period_start: string
+    current_period_end: string | null
+    grace_period_end: string | null
+    cancel_at_period_end: boolean
+}
+
+export async function getEntitlements(): Promise<Entitlements> {
+    const token = await getAuthToken()
+    if (!token) throw new Error('Not authenticated')
+    const response = await fetch(`${API_URL}/v1/billing/entitlements`, { headers: { 'Authorization': `Bearer ${token}` }, cache: 'no-store' })
+    if (!response.ok) throw await getApiError(response, 'Could not load billing status')
+    return response.json()
+}
+
+export async function createCheckout(plan_code: string, cadence: 'monthly' | 'annual' = 'monthly'): Promise<{ url: string }> {
+    const token = await getAuthToken()
+    if (!token) throw new Error('Not authenticated')
+    const response = await fetch(`${API_URL}/v1/billing/checkout`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan_code, cadence })
+    })
+    if (!response.ok) throw await getApiError(response, 'Could not start checkout')
+    return response.json()
+}
+
+export async function createBillingPortal(): Promise<{ url: string }> {
+    const token = await getAuthToken()
+    if (!token) throw new Error('Not authenticated')
+    const response = await fetch(`${API_URL}/v1/billing/portal`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+    })
+    if (!response.ok) throw await getApiError(response, 'Billing portal unavailable')
+    return response.json()
+}
