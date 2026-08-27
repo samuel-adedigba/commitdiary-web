@@ -1,9 +1,8 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { supabase } from '/lib/supabaseClient'
 import { useAuth } from '/lib/auth-context'
-import type { RealtimeChannel } from '@supabase/supabase-js'
+import { subscribeToReports } from '/lib/realtimeAdapter'
 import { logError } from '/lib/alerts/errorLogger'
 
 export interface ReportUpdate {
@@ -57,138 +56,70 @@ export function useRealtimeReports(commitId?: number, onUpdate?: (update: Report
     setReportsStatus('connecting')
     setJobsStatus('connecting')
     setError(null)
-    
-    let reportsChannel: RealtimeChannel | null = null
-    let jobsChannel: RealtimeChannel | null = null
 
-    async function setupRealtimeSubscriptions() {
-      try {
-        // Subscribe to commit_reports table (INSERTs only - when report completes)
-        reportsChannel = supabase
-          .channel(`report-updates-${userId}-${commitId || 'all'}`)
-          .on(
-            'postgres_changes',
-            {
-              event: 'INSERT',
-              schema: 'public',
-              table: 'commit_reports',
-              filter: commitId ? `commit_id=eq.${commitId}` : `user_id=eq.${userId}`
-            },
-            (payload) => {
-              const update: ReportUpdate = {
-                type: 'report_completed',
-                commitId: (payload.new as any).commit_id,
-                data: payload.new
-              }
+    let unsubscribe: (() => void) | null = null
 
-              setLastUpdate(new Date())
-              setReportData(payload.new)
-              
-              if (onUpdateRef.current) {
-                onUpdateRef.current(update)
-              }
-            }
-          )
-          .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-              setIsConnected(true)
-              setStatus('connected')
-              setReportsStatus('connected')
-              setError(null)
-              return
-            }
+    try {
+      unsubscribe = subscribeToReports(
+        userId,
+        commitId ?? null,
+        (event) => {
+          const update: ReportUpdate = {
+            type: event.type,
+            commitId: (event.commitId as number) ?? commitId ?? 0,
+            data: (event.report || event.jobStatus || {}) as Record<string, unknown>,
+          }
+          setLastUpdate(new Date())
+          if (event.type === 'report_completed') setReportData(event.report || null)
+          else setJobStatus(event.jobStatus || null)
 
-            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-              setIsConnected(false)
-              setStatus('error')
-              setReportsStatus('error')
-              const nextError = `Report channel subscription failed (${status})`
-              setError(nextError)
-              logError({
-                title: 'Realtime Reports Subscription Error',
-                message: nextError,
-                severity: 'warning',
-                metadata: { userId, commitId, channel: 'commit_reports', status }
-              })
-              return
-            }
-
-            setStatus('connecting')
-            setReportsStatus('connecting')
-          })
-
-        // Subscribe to report_jobs table (UPDATEs - for status changes like failed)
-        jobsChannel = supabase
-          .channel(`job-updates-${userId}-${commitId || 'all'}`)
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'report_jobs',
-              filter: commitId ? `commit_id=eq.${commitId}` : `user_id=eq.${userId}`
-            },
-            (payload) => {
-              const update: ReportUpdate = {
-                type: payload.new?.status === 'failed' ? 'report_failed' : 'job_status_change',
-                commitId: (payload.new as any).commit_id,
-                data: payload.new
-              }
-
-              setLastUpdate(new Date())
-              setJobStatus(payload.new)
-              
-              if (onUpdateRef.current) {
-                onUpdateRef.current(update)
-              }
-            }
-          )
-          .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-              setJobsStatus('connected')
-              return
-            }
-
-            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-              setStatus('degraded')
-              setJobsStatus('error')
-              const nextError = `Job status channel degraded (${status})`
-              setError((prev) => prev ?? nextError)
-              logError({
-                title: 'Realtime Job Status Subscription Error',
-                message: nextError,
-                severity: 'warning',
-                metadata: { userId, commitId, channel: 'report_jobs', status }
-              })
-            }
-          })
-
-      } catch (error) {
-        setIsConnected(false)
-        setStatus('error')
-        setReportsStatus('error')
-        setJobsStatus('error')
-        const nextError = error instanceof Error ? error.message : 'Failed to setup realtime subscriptions'
-        setError(nextError)
-        logError({
-          title: 'Realtime Setup Error',
-          message: nextError,
-          severity: 'warning',
-          metadata: { userId, commitId }
-        })
-      }
+          if (onUpdateRef.current) {
+            onUpdateRef.current(update)
+          }
+        },
+        (channelStatus) => {
+          // Adapter funnels both channels; map to per-channel states
+          if (channelStatus === 'SUBSCRIBED' || channelStatus === 'connected') {
+            setIsConnected(true)
+            setStatus('connected')
+            setReportsStatus('connected')
+            setJobsStatus('connected')
+            setError(null)
+          } else if (channelStatus === 'polling') {
+            setIsConnected(false)
+            setStatus('degraded')
+            setReportsStatus('degraded')
+            setJobsStatus('degraded')
+          } else if (channelStatus === 'CHANNEL_ERROR' || channelStatus === 'TIMED_OUT') {
+            setIsConnected(false)
+            setStatus('error')
+            setError(`Realtime degraded (${channelStatus}) — falling back to polling`)
+            logError({
+              title: 'Realtime Reports Subscription Error',
+              message: `Realtime degraded (${channelStatus})`,
+              severity: 'warning',
+              metadata: { userId, commitId, channelStatus },
+            })
+          }
+        },
+      )
+    } catch (error) {
+      setIsConnected(false)
+      setStatus('error')
+      setReportsStatus('error')
+      setJobsStatus('error')
+      const nextError = error instanceof Error ? error.message : 'Failed to setup realtime subscriptions'
+      setError(nextError)
+      logError({
+        title: 'Realtime Setup Error',
+        message: nextError,
+        severity: 'warning',
+        metadata: { userId, commitId },
+      })
     }
 
-    setupRealtimeSubscriptions()
-
-    // Cleanup subscriptions on unmount
     return () => {
-      if (reportsChannel) {
-        supabase.removeChannel(reportsChannel)
-      }
-      if (jobsChannel) {
-        supabase.removeChannel(jobsChannel)
-      }
+      if (unsubscribe) unsubscribe()
     }
   }, [userId, commitId]) // Only depend on userId and commitId
 

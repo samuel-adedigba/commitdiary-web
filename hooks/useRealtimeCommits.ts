@@ -1,9 +1,8 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { supabase } from '/lib/supabaseClient'
 import { useAuth } from '/lib/auth-context'
-import type { RealtimeChannel } from '@supabase/supabase-js'
+import { subscribeToCommits } from '/lib/realtimeAdapter'
 
 export interface CommitUpdate {
   type: 'INSERT' | 'UPDATE' | 'DELETE'
@@ -11,8 +10,11 @@ export interface CommitUpdate {
 }
 
 /**
- * Hook for real-time commit updates via Supabase subscriptions
- * Automatically subscribes to commit changes for the authenticated user
+ * Hook for real-time commit updates — via API-owned event adapter.
+ * Realtime notifications trigger an authoritative API refetch; the hook
+ * maintains a local optimistic view and degrades to polling when realtime
+ * is unavailable. The adapter currently delegates to Supabase Realtime;
+ * future providers (WebSocket/SSE + LISTEN/NOTIFY) require no consumer change.
  */
 export function useRealtimeCommits(onUpdate?: (update: CommitUpdate) => void) {
   const [commits, setCommits] = useState<any[]>([])
@@ -30,61 +32,32 @@ export function useRealtimeCommits(onUpdate?: (update: CommitUpdate) => void) {
 
   useEffect(() => {
     if (!userId) return // Wait for user ID
-    
-    let channel: RealtimeChannel | null = null
 
-    async function setupRealtimeSubscription() {
-      try {
-        // Create channel for commits table
-        channel = supabase
-          .channel('commits-changes')
-          .on(
-            'postgres_changes',
-            {
-              event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-              schema: 'public',
-              table: 'commits',
-              filter: `user_id=eq.${userId}` // Only subscribe to current user's commits
-            },
-            (payload) => {
-              const update: CommitUpdate = {
-                type: payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE',
-                commit: payload.new || payload.old
-              }
+    const unsubscribe = subscribeToCommits(
+      userId,
+      (event) => {
+        const update: CommitUpdate = { type: event.type, commit: event.commit }
+        setLastUpdate(new Date())
 
-              setLastUpdate(new Date())
-              
-              // Update commits array based on event type
-              if (payload.eventType === 'INSERT' && payload.new) {
-                setCommits(prev => [payload.new as any, ...prev])
-              } else if (payload.eventType === 'UPDATE' && payload.new) {
-                setCommits(prev => prev.map(c => c.id === (payload.new as any).id ? payload.new as any : c))
-              } else if (payload.eventType === 'DELETE' && payload.old) {
-                setCommits(prev => prev.filter(c => c.id !== (payload.old as any).id))
-              }
-              
-              // Call the callback if provided
-              if (onUpdateRef.current) {
-                onUpdateRef.current(update)
-              }
-            }
-          )
-          .subscribe((status) => {
-            setIsConnected(status === 'SUBSCRIBED')
-          })
+        // Update commits array based on event type (optimistic)
+        if (event.type === 'INSERT' && event.commit) {
+          setCommits(prev => [event.commit as any, ...prev])
+        } else if (event.type === 'UPDATE' && event.commit) {
+          setCommits(prev => prev.map(c => c.id === (event.commit as any).id ? event.commit as any : c))
+        } else if (event.type === 'DELETE' && event.commit) {
+          setCommits(prev => prev.filter(c => c.id !== (event.commit as any).id))
+        }
 
-      } catch (error) {
-      }
-    }
+        if (onUpdateRef.current) {
+          onUpdateRef.current(update)
+        }
+      },
+      (status) => {
+        setIsConnected(status === 'SUBSCRIBED' || status === 'connected')
+      },
+    )
 
-    setupRealtimeSubscription()
-
-    // Cleanup subscription on unmount
-    return () => {
-      if (channel) {
-        supabase.removeChannel(channel)
-      }
-    }
+    return () => unsubscribe()
   }, [userId]) // Only depend on userId
 
   return { commits, isConnected, lastUpdate }

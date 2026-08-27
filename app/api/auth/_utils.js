@@ -1,8 +1,10 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
+// Single adapter import — all Supabase Auth HTTP details live in authProvider
+import { authProvider, fetchAuthProvider as adapterFetch } from "../../../lib/authProvider";
 
-export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-export const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+export const SUPABASE_URL = authProvider.getSupabaseUrl() || process.env.NEXT_PUBLIC_SUPABASE_URL;
+export const SUPABASE_ANON_KEY = authProvider.getAnonKey() || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const ACCESS_COOKIE = "cd_sb_access_token";
 export const REFRESH_COOKIE = "cd_sb_refresh_token";
@@ -11,17 +13,9 @@ export const PKCE_VERIFIER_COOKIE = "cd_pkce_verifier";
 export const RECOVERY_FLOW_COOKIE = "cd_recovery_flow";
 
 const isProduction = process.env.NODE_ENV === "production";
-const AUTH_REQUEST_TIMEOUT_MS = 10_000;
 
 export async function fetchAuthProvider(url, options = {}) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), AUTH_REQUEST_TIMEOUT_MS);
-
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(timeoutId);
-  }
+  return adapterFetch(url, options);
 }
 
 export function getSiteUrl(request) {

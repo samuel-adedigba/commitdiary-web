@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { resolveDomainRoute } from './lib/domainRouting'
+// Auth provider adapter — single place that knows Supabase Auth endpoint shapes.
+// Middleware keeps the HttpOnly-cookie contract stable; provider swap changes only authProvider.
+import { authProvider } from './lib/authProvider'
 
 const ACCESS_COOKIE = 'cd_sb_access_token'
 const REFRESH_COOKIE = 'cd_sb_refresh_token'
 const EXPIRES_COOKIE = 'cd_sb_expires_at'
 const API_URL = process.env.API_URL || ''
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+const SUPABASE_URL = authProvider.getSupabaseUrl() || process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const SUPABASE_ANON_KEY = authProvider.getAnonKey() || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const MARKETING_URL = process.env.NEXT_PUBLIC_MARKETING_URL || ''
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || ''
 
@@ -97,20 +100,10 @@ async function proxyApiRequest(request: NextRequest) {
 }
 
 async function refreshSession(refreshToken: string) {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null
-
+  // Delegate to provider adapter so middleware does not hardcode auth endpoint shape outside adapter
+  if (!authProvider.isConfigured()) return null
   try {
-    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
-      method: 'POST',
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    })
-
-    if (!response.ok) return null
-    return response.json()
+    return await authProvider.refreshSession(refreshToken)
   } catch {
     return null
   }

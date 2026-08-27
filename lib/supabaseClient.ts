@@ -9,11 +9,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 /**
- * Supabase client with enhanced security configuration
- * 
- * Security features:
- * Auth/session state is handled by server routes with httpOnly cookies.
- * This browser client is kept only for non-auth Supabase features like Realtime.
+ * Supabase client — Realtime adapter implementation (provider-specific).
+ * This browser client is the current Realtime provider behind lib/realtimeAdapter.
+ * Do not add direct table queries here; all product data must go through the
+ * CommitDiary API (see lib/apiClient). Auth/session is handled by server routes
+ * with HttpOnly cookies via lib/authProvider.
+ *
+ * Future VPS: replace with WebSocket/SSE + LISTEN/NOTIFY adapter without
+ * changing realtimeAdapter consumers.
  */
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

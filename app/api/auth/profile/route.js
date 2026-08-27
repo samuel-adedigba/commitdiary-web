@@ -1,6 +1,6 @@
-import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { ACCESS_COOKIE, SUPABASE_ANON_KEY, SUPABASE_URL, fetchAuthProvider } from "../_utils";
+import { putProfileMedia } from "../../../../lib/storageAdapter";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const MEDIA_TYPES = { avatar: "avatar_url", cover: "cover_url" };
@@ -43,14 +43,21 @@ export async function POST(request) {
   if (!EXTENSIONS[file.type] || file.size > MAX_FILE_BYTES) {
     return NextResponse.json({ error: "Use a JPG, PNG, or WebP image up to 5 MB." }, { status: 400 });
   }
-  const path = `${session.user.id}/${kind}-${crypto.randomUUID()}.${EXTENSIONS[file.type]}`;
-  const upload = await fetchAuthProvider(`${SUPABASE_URL}/storage/v1/object/profile-media/${path}`, {
-    method: "POST",
-    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.token}`, "Content-Type": file.type, "x-upsert": "false", "cache-control": "3600" },
-    body: Buffer.from(await file.arrayBuffer()),
-  });
-  if (!upload.ok) return NextResponse.json({ error: "We could not upload that image." }, { status: 502 });
-  const url = `${SUPABASE_URL}/storage/v1/object/public/profile-media/${path}`;
+  // Use object-storage adapter — provider-neutral key, ACCESS authorized by API
+  let url, path;
+  try {
+    const result = await putProfileMedia({
+      userId: session.user.id,
+      kind,
+      buffer: Buffer.from(await file.arrayBuffer()),
+      contentType: file.type,
+      accessToken: session.token,
+    });
+    url = result.publicUrl;
+    path = result.path;
+  } catch {
+    return NextResponse.json({ error: "We could not upload that image." }, { status: 502 });
+  }
   const update = await fetchAuthProvider(`${SUPABASE_URL}/auth/v1/user`, {
     method: "PUT",
     headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.token}`, "Content-Type": "application/json" },
