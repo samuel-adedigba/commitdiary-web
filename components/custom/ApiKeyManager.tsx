@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { ComponentType } from "react";
+import { Alert, Badge, Button, Card, Form } from "react-bootstrap";
 import { FiAlertTriangle } from "react-icons/fi";
 import {
   fetchApiKeys,
@@ -87,107 +88,108 @@ export default function ApiKeyManager() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">API Keys</h2>
-        <p className="text-gray-600">
+    <div className="api-key-manager">
+      <div className="api-key-intro mb-4">
+        <h3 className="mb-2">Connect your developer tools</h3>
+        <p className="text-muted mb-0">
           Generate API keys for automation, CI/CD pipelines, or headless agents.
         </p>
       </div>
 
       {/* Generated Key Modal */}
       {generatedKey && (
-        <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-yellow-900 mb-2 flex items-center gap-2">
+        <div className="api-key-generated mb-4">
+          <h4 className="mb-2 d-flex align-items-center gap-2">
             <AlertTriangleIcon aria-hidden={true} />
             Save Your API Key
-          </h3>
-          <p className="text-sm text-yellow-800 mb-4">
+          </h4>
+          <p className="mb-4">
             This is the only time you will see this key. Copy it now and store
             it securely.
           </p>
 
-          <div className="bg-white border border-yellow-300 rounded p-3 mb-4">
-            <code className="text-sm font-mono break-all">
+          <div className="api-key-value mb-4">
+            <code className="font-monospace text-break">
               {generatedKey.key}
             </code>
           </div>
 
-          <div className="flex gap-2">
-            <button
+          <div className="d-flex gap-2 flex-wrap">
+            <Button
               onClick={() => copyToClipboard(generatedKey.key!)}
-              className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+              variant="primary"
             >
               Copy to Clipboard
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setGeneratedKey(null)}
-              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              variant="outline-secondary"
             >
               Done
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+        <Alert variant="danger" dismissible onClose={() => setError(null)}>
           {error}
-        </div>
+        </Alert>
       )}
 
       {/* Generate New Key */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Generate New API Key
-        </h3>
+      <Card className="mb-4">
+        <Card.Body>
+          <h4 className="mb-1">Generate a new key</h4>
+          <p className="small text-muted mb-4">Use a clear name so you can identify this connection later.</p>
 
-        <div className="flex gap-6">
-          <input
-            type="text"
-            value={newKeyName}
-            onChange={(e) => setNewKeyName(e.target.value)}
-            placeholder="e.g., CI/CD Pipeline, GitHub Actions"
-            className="flex-1 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            onClick={handleGenerateKey}
-            disabled={loading || !newKeyName.trim()}
-            className="px-6 py-2 bg-blue-700 text-black rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? "Generating..." : "Generate"}
-          </button>
-        </div>
-      </div>
+          <Form.Label htmlFor="api-key-name">Key name</Form.Label>
+          <div className="d-flex gap-3 flex-column flex-sm-row">
+            <Form.Control
+              id="api-key-name"
+              type="text"
+              value={newKeyName}
+              onChange={(e) => setNewKeyName(e.target.value)}
+              placeholder="e.g., CI/CD Pipeline, GitHub Actions"
+              maxLength={100}
+            />
+            <Button
+              onClick={handleGenerateKey}
+              disabled={loading || !newKeyName.trim()}
+              className="flex-shrink-0"
+            >
+              {loading ? "Generating..." : "Generate key"}
+            </Button>
+          </div>
+        </Card.Body>
+      </Card>
 
       {/* API Keys List */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Your API Keys</h3>
-        </div>
+      <Card className="mb-4 overflow-hidden">
+        <Card.Header>
+          <h4 className="mb-0">Your API keys</h4>
+        </Card.Header>
 
         {keys.length === 0 ? (
-          <div className="px-6 py-12 text-center text-gray-500">
+          <div className="api-key-empty text-center text-muted">
             No API keys yet. Generate one to get started.
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div>
             {keys.map((key) => (
               <div
                 key={key.id}
-                className="px-6 py-4 flex items-center justify-between"
+                className="api-key-row d-flex align-items-center justify-content-between gap-3"
               >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-gray-900">{key.name}</p>
+                <div className="flex-grow-1 min-width-0">
+                  <div className="d-flex align-items-center gap-2 flex-wrap">
+                    <p className="fw-semibold mb-0">{key.name}</p>
                     {key.revoked_at && (
-                      <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-                        Revoked
-                      </span>
+                      <Badge bg="danger">Revoked</Badge>
                     )}
                   </div>
-                  <div className="flex gap-4 text-sm text-gray-600 mt-1">
+                  <div className="d-flex gap-3 flex-wrap small text-muted mt-1">
                     <span>
                       Created: {new Date(key.created_at).toLocaleDateString()}
                     </span>
@@ -198,37 +200,38 @@ export default function ApiKeyManager() {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 font-mono mt-1">
+                  <p className="small text-muted font-monospace text-break mb-0 mt-1">
                     ID: {key.id}
                   </p>
                 </div>
 
                 {!key.revoked_at && (
-                  <button
+                  <Button
                     onClick={() => handleRevokeKey(key.id)}
                     disabled={loading}
-                    className="px-4 py-2 bg-red-900 text-red-800 text-sm rounded hover:bg-red-700 disabled:opacity-50"
+                    variant="outline-danger"
+                    size="sm"
                   >
                     Revoke
-                  </button>
+                  </Button>
                 )}
               </div>
             ))}
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Usage Instructions */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-blue-900 mb-2">
+      <div className="api-key-help">
+        <h4 className="mb-2">
           Using API Keys
-        </h3>
-        <p className="text-sm text-blue-800 mb-3">
+        </h4>
+        <p className="small mb-3">
           Use API keys to authenticate from the VS Code extension or other
           tools:
         </p>
-        <div className="bg-white border border-blue-300 rounded p-3">
-          <code className="text-sm font-mono">
+        <div className="api-key-command">
+          <code className="small font-monospace text-break">
             X-API-Key: cd_your_api_key_here
           </code>
         </div>

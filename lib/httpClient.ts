@@ -76,7 +76,9 @@ export async function httpRequest<T = unknown>(url: string, options: HttpRequest
         // Select Axios' Web Fetch adapter explicitly so it never selects the
         // Node-only HTTP adapter in that runtime.
         adapter: 'fetch',
-        withCredentials: options.credentials === 'include',
+        // Keep same-origin HttpOnly sessions available by default. The auth
+        // routes set/read the session cookie through this shared adapter.
+        withCredentials: options.credentials !== 'omit',
         validateStatus: () => true,
     }).catch((error: unknown) => {
         if (axios.isAxiosError(error)) {

@@ -11,6 +11,7 @@ import {
   getSiteUrl,
   setSessionCookies,
 } from "../_utils";
+import { legalConfig } from "../../../../lib/legalConfig";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_PATTERN = /^[a-z0-9](?:[a-z0-9_-]{1,28}[a-z0-9])$/;
@@ -19,7 +20,8 @@ export async function POST(request) {
   const rateLimitResponse = enforceAuthRateLimit(request, "sign-up", 5, 60 * 60 * 1000);
   if (rateLimitResponse) return rateLimitResponse;
 
-  const { email, password, username } = await request.json().catch(() => ({}));
+  const body = await request.json().catch(() => ({}));
+  const { email, password, username, termsAccepted, privacyAcknowledged } = body;
   const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
   const normalizedUsername = typeof username === "string" ? username.trim().toLowerCase() : "";
 
@@ -38,12 +40,20 @@ export async function POST(request) {
     return NextResponse.json({ error: "Use a password with at least 8 characters." }, { status: 400 });
   }
 
+  if (termsAccepted !== true || privacyAcknowledged !== true) {
+    return NextResponse.json(
+      { error: "Agree to the Terms of Service and review the Privacy Notice before creating an account." },
+      { status: 400 },
+    );
+  }
+
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     return NextResponse.json({ error: "Authentication is not configured." }, { status: 503 });
   }
 
   const { verifier, challenge } = createPkcePair();
   const redirectTo = `${getSiteUrl(request)}/api/auth/callback`;
+  const legalAcceptedAt = new Date().toISOString();
   let authResponse;
 
   try {
@@ -58,7 +68,15 @@ export async function POST(request) {
         body: JSON.stringify({
           email: normalizedEmail,
           password,
-          data: { username: normalizedUsername },
+          data: {
+            username: normalizedUsername,
+            legal: {
+              terms_version: legalConfig.policyVersion,
+              terms_accepted_at: legalAcceptedAt,
+              privacy_version: legalConfig.policyVersion,
+              privacy_acknowledged_at: legalAcceptedAt,
+            },
+          },
           code_challenge: challenge,
           code_challenge_method: "s256",
         }),
@@ -72,8 +90,26 @@ export async function POST(request) {
   }
 
   if (!authResponse.ok) {
+    const providerError = await authResponse.json().catch(() => null);
+    const isDevelopment = process.env.NODE_ENV !== "production";
+
+    if (isDevelopment) {
+      console.warn("Supabase signup rejected", {
+        status: authResponse.status,
+        code: providerError?.code,
+        error: providerError?.error,
+        message: providerError?.msg || providerError?.message,
+      });
+    }
+
     return NextResponse.json(
-      { error: "We could not create that account. Check your details or sign in instead." },
+      {
+        error: isDevelopment
+          ? providerError?.msg || providerError?.message || providerError?.error_description ||
+            "We could not create that account. Check your details or sign in instead."
+          : "We could not create that account. Check your details or sign in instead.",
+        ...(isDevelopment && providerError?.code ? { code: providerError.code } : {}),
+      },
       { status: authResponse.status === 429 ? 429 : 400 },
     );
   }

@@ -131,8 +131,111 @@ export interface Repository {
 export interface UserProfile {
     id: string
     email: string
+    role: 'user' | 'admin'
     created_at: string
 }
+
+export interface AdminOverview {
+    users: { total: number; admins: number; new_last_30_days: number }
+    commits: { total: number }
+    reports: { created_last_30_days: number }
+    subscriptions: { active: number }
+    payments: {
+        transaction_count: number
+        gross_amount_minor: string
+        refunded_amount_minor: string
+        disputed_amount_minor: string
+    }
+    generated_at: string
+}
+
+export interface AdminUser {
+    id: string
+    email: string
+    username: string | null
+    role: 'user' | 'admin'
+    created_at: string
+    counts: { repos: number; commits: number; reportJobs: number }
+    subscription: {
+        provider: string | null
+        plan_code: string | null
+        cadence: string
+        status: string | null
+        current_period_start: string | null
+        current_period_end: string | null
+        grace_period_end: string | null
+        cancel_at_period_end: boolean | null
+        provider_updated_at: string | null
+    } | null
+}
+
+export interface AdminPayment {
+    provider_transaction_id: string
+    provider: string
+    status: string
+    currency_code: string
+    amount_minor: string | null
+    refunded_amount_minor: string
+    disputed_amount_minor: string
+    provider_created_at: string | null
+    provider_updated_at: string | null
+    created_at: string
+    user: { id: string; email: string | null } | null
+}
+
+export interface AdminActivityItem {
+    id: string
+    source: string
+    action: string
+    occurred_at: string
+    user: { id: string; email: string | null } | null
+    actor: { id: string; email: string | null } | null
+    details: Record<string, unknown> | null
+}
+
+export interface AdminPage<T> {
+    items: T[]
+    pagination: { total?: number; limit: number; offset: number; has_more: boolean }
+}
+
+export interface AdminListParams {
+    limit?: number
+    offset?: number
+    user_id?: string
+    search?: string
+    status?: string
+    role?: 'user' | 'admin'
+    from?: string
+    to?: string
+}
+
+async function getAdminResource<T>(path: string): Promise<T> {
+    const token = await getAuthToken()
+    if (!token) throw new Error('Not authenticated')
+    const response = await httpRequest(`${API_URL}${path}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+        cache: 'no-store'
+    })
+    if (!response.ok) throw await getApiError(response, 'Could not load admin data')
+    return response.json<T>()
+}
+
+function adminQuery(params?: AdminListParams): string {
+    const query = new URLSearchParams()
+    if (params?.limit !== undefined) query.set('limit', String(params.limit))
+    if (params?.offset !== undefined) query.set('offset', String(params.offset))
+    for (const key of ['user_id', 'search', 'status', 'role', 'from', 'to'] as const) {
+        const value = params?.[key]
+        if (value) query.set(key, value)
+    }
+    const serialized = query.toString()
+    return serialized ? `?${serialized}` : ''
+}
+
+export const getAdminOverview = (): Promise<AdminOverview> => getAdminResource('/v1/admin/overview')
+export const getAdminUsers = (params?: AdminListParams): Promise<AdminPage<AdminUser>> => getAdminResource(`/v1/admin/users${adminQuery(params)}`)
+export const getAdminPayments = (params?: AdminListParams): Promise<AdminPage<AdminPayment>> => getAdminResource(`/v1/admin/payments${adminQuery(params)}`)
+export const getAdminActivity = (params?: AdminListParams): Promise<AdminPage<AdminActivityItem>> => getAdminResource(`/v1/admin/activity${adminQuery(params)}`)
 
 async function getAuthToken(): Promise<string | null> {
     const user = await getCachedUser()
@@ -924,7 +1027,11 @@ export const apiClient = {
     updateWebhookSettings,
     testWebhook,
     deleteWebhookSettings,
-    fetchWebhookLogs
+    fetchWebhookLogs,
+    getAdminOverview,
+    getAdminUsers,
+    getAdminPayments,
+    getAdminActivity,
 }
 
 /**
@@ -1060,7 +1167,7 @@ export interface BillingCatalogPrice {
     description: string | null
     cadence: 'monthly' | 'annual'
     amount_minor: string
-    currency_code: string
+    currency_code: string | null
     formatted_total: string | null
 }
 

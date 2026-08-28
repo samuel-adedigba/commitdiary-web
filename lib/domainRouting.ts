@@ -9,6 +9,10 @@ const MARKETING_PATHS = new Set([
   "/install",
   "/pricing",
   "/privacy",
+  "/terms",
+  "/refunds",
+  "/cookies",
+  "/contact",
   "/templates",
 ]);
 

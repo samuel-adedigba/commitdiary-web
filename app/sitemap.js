@@ -1,14 +1,13 @@
 import { siteConfig } from "../lib/siteConfig";
 
 export default function sitemap() {
-  if (!siteConfig.siteUrl) return [];
+  const lastModified = new Date("2026-08-28");
+  const publicPaths = ["", "/pricing", "/terms", "/privacy", "/refunds", "/cookies", "/contact"];
 
-  return [
-    {
-      url: siteConfig.siteUrl,
-      lastModified: new Date("2026-07-21"),
-      changeFrequency: "weekly",
-      priority: 1,
-    },
-  ];
+  return publicPaths.map((path) => ({
+    url: `${siteConfig.siteUrl}${path}`,
+    lastModified,
+    changeFrequency: path ? "monthly" : "weekly",
+    priority: path ? 0.6 : 1,
+  }));
 }

@@ -8,6 +8,11 @@ import styles from "components/auth/auth.module.scss";
 import PasswordField from "components/auth/PasswordField";
 import { httpRequest } from "lib/httpClient";
 
+const legalAcknowledgements = [
+  { id: "termsAccepted", linkText: "Terms of Service", href: "/terms", prefix: "I agree to the" },
+  { id: "privacyAcknowledged", linkText: "Privacy Notice", href: "/privacy", prefix: "I have read the" },
+];
+
 const signUpFields = [
   {
     id: "username",
@@ -48,6 +53,8 @@ const SignUp = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    termsAccepted: false,
+    privacyAcknowledged: false,
   });
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState("");
@@ -55,8 +62,8 @@ const SignUp = () => {
   const [confirmationSent, setConfirmationSent] = useState(false);
 
   const handleChange = (event) => {
-    const { name, value } = event.target;
-    setFormData((current) => ({ ...current, [name]: value }));
+    const { name, value, type, checked } = event.target;
+    setFormData((current) => ({ ...current, [name]: type === "checkbox" ? checked : value }));
     setFieldErrors((current) => ({ ...current, [name]: "" }));
   };
 
@@ -77,6 +84,12 @@ const SignUp = () => {
     if (formData.password !== formData.confirmPassword) {
       errors.confirmPassword = "Enter the same password in both fields.";
     }
+    if (!formData.termsAccepted) {
+      errors.termsAccepted = "Agree to the Terms of Service to create an account.";
+    }
+    if (!formData.privacyAcknowledged) {
+      errors.privacyAcknowledged = "Review the Privacy Notice before creating an account.";
+    }
 
     if (Object.keys(errors).length) {
       setFieldErrors(errors);
@@ -94,6 +107,8 @@ const SignUp = () => {
           username: formData.username,
           email: formData.email,
           password: formData.password,
+          termsAccepted: formData.termsAccepted,
+          privacyAcknowledged: formData.privacyAcknowledged,
         }),
       });
       const payload = await response.json().catch(() => ({}));
@@ -200,10 +215,40 @@ const SignUp = () => {
           );
         })}
 
-        <p className={styles.legalCopy}>
-          Review how CommitDiary handles account data in the{" "}
-          <Link href="/privacy">Privacy Policy</Link>.
-        </p>
+          <fieldset
+            className={styles.legalChoices}
+            aria-describedby={fieldErrors.termsAccepted || fieldErrors.privacyAcknowledged ? "legal-choice-error" : undefined}
+            aria-invalid={fieldErrors.termsAccepted || fieldErrors.privacyAcknowledged ? "true" : undefined}
+          >
+            <legend>Before you create an account</legend>
+          {legalAcknowledgements.map((item) => (
+            <Form.Check
+              key={item.id}
+              id={item.id}
+              name={item.id}
+              type="checkbox"
+              checked={formData[item.id]}
+              onChange={handleChange}
+              isInvalid={Boolean(fieldErrors[item.id])}
+              feedback={fieldErrors[item.id]}
+              disabled={loading}
+              label={(
+                <span>
+                  {item.prefix} {" "}
+                  <Link href={item.href}>{item.linkText}</Link>.
+                </span>
+              )}
+            />
+          ))}
+          {fieldErrors.termsAccepted || fieldErrors.privacyAcknowledged ? (
+            <p id="legal-choice-error" className={styles.fieldError} role="alert">
+              Select both choices to create your account.
+            </p>
+          ) : null}
+          <p className={styles.fieldHelp}>
+            Your account provider receives the policy versions and server time with this signup request. Marketing messages are optional and are not required for service access.
+          </p>
+        </fieldset>
 
         <Button
           className={styles.primaryAction}

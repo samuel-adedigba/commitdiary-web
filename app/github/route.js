@@ -1,3 +1,5 @@
+import { configuredRedirect, siteConfig } from "../../lib/siteConfig";
+
 export function GET(request) {
-  return Response.redirect(new URL("/docs", request.url), 307);
+  return configuredRedirect(siteConfig.githubUrl, request.url);
 }

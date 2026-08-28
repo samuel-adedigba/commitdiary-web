@@ -50,6 +50,22 @@ describe("resolveDomainRoute", () => {
     }
   });
 
+  it.each(["/terms", "/privacy", "/refunds", "/cookies", "/contact"])(
+    "keeps public legal route %s on the marketing origin",
+    (path) => {
+      const route = resolveDomainRoute(
+        new URL(`https://app.example.test${path}`),
+        "app.example.test",
+        config,
+      );
+
+      expect(route.action).toBe("redirect");
+      if (route.action === "redirect") {
+        expect(route.url.toString()).toBe(`https://www.example.test${path}`);
+      }
+    },
+  );
+
   it("keeps the Marketplace redirect route on the app origin", () => {
     expect(
       resolveDomainRoute(

@@ -1,6 +1,8 @@
 // import node module libraries
-import Link from "next/link";
 import { Col, Row, Card } from "react-bootstrap";
+import { legalConfig } from "lib/legalConfig";
+
+const deletionRequestHref = `mailto:${legalConfig.supportEmail}?subject=${encodeURIComponent("CommitDiary account deletion request")}`;
 
 const DeleteAccount = () => {
   return (
@@ -9,7 +11,7 @@ const DeleteAccount = () => {
         <div className="mb-4 mb-lg-0">
           <h4 className="mb-1">Delete Account</h4>
           <p className="mb-0 fs-5 text-muted">
-            Easily set up social media accounts
+            Remove your CommitDiary account and work data
           </p>
         </div>
       </Col>
@@ -21,16 +23,19 @@ const DeleteAccount = () => {
             </div>
             <div>
               <p>
-                Delete any and all content you have, such as articles, comments,
-                your reading list or chat messages. Allow your username to
-                become available to anyone.
+                Request deletion of your account, repositories, commits, reports,
+                shares, and connected settings. We may retain limited records when
+                needed for billing, security, disputes, or a legal obligation.
               </p>
-              <Link href="#" className="btn btn-danger">
-                Delete Account
-              </Link>
+              <a
+                href={deletionRequestHref}
+                className="btn btn-danger"
+              >
+                Request account deletion
+              </a>
               <p className="small mb-0 mt-3">
-                Feel free to contact with any{" "}
-                <Link href="#">support@commitdiary.com</Link> questions.
+                We will verify account ownership before acting. Questions?{" "}
+                <a href={`mailto:${legalConfig.supportEmail}`}>Email {legalConfig.supportEmail}</a>.
               </p>
             </div>
           </Card.Body>

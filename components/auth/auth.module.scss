@@ -370,6 +370,41 @@
   line-height: 1.55;
 }
 
+.legalChoices {
+  margin: 0;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid #d8ded7;
+  border-radius: 0.45rem;
+  background: #f7f9f5;
+
+  legend {
+    float: left;
+    width: 100%;
+    margin-bottom: 0.65rem;
+    color: $cd-ink-raised;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  :global(.form-check) {
+    clear: both;
+    margin-bottom: 0.55rem;
+  }
+
+  :global(.form-check-label) {
+    color: $cd-muted-dark;
+    font-size: 0.73rem;
+    line-height: 1.5;
+  }
+
+  :global(.form-check-input) {
+    border-color: #aebbb2;
+    &:focus { box-shadow: 0 0 0 0.2rem rgba($cd-sage, 0.28); }
+  }
+
+  .fieldHelp { clear: both; margin-top: 0.4rem; }
+}
+
 .fieldError {
   margin-top: 0.45rem;
   color: #743534;

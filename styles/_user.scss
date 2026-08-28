@@ -180,6 +180,358 @@ summary {
   gap: 0.5rem;
 }
 
+.settings-shell {
+  max-width: 76rem;
+  margin: 0 auto;
+}
+
+.settings-overview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding: 1.75rem 2rem;
+  border: 1px solid rgba($cd-ink-soft, 0.1);
+  border-radius: 1rem;
+  background: linear-gradient(120deg, $cd-ink-soft 0%, $cd-ink-raised 68%, $cd-sage-deep 145%);
+  box-shadow: $smooth-shadow-md;
+}
+
+.settings-eyebrow {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: $cd-amber;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.settings-title,
+.settings-overview .settings-subtitle {
+  color: $cd-paper;
+}
+
+.settings-title {
+  margin-bottom: 0.4rem;
+  font-size: clamp(1.45rem, 2vw, 2rem);
+}
+
+.settings-subtitle {
+  max-width: 42rem;
+  color: rgba($cd-paper, 0.72) !important;
+}
+
+.settings-overview-mark {
+  display: grid;
+  flex: 0 0 auto;
+  width: 4.25rem;
+  height: 4.25rem;
+  place-items: center;
+  border: 1px solid rgba($cd-amber, 0.5);
+  border-radius: 1rem;
+  color: $cd-amber;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.settings-tabs-card {
+  margin-bottom: 2rem;
+  padding: 0.4rem;
+  border: 1px solid rgba($cd-ink-soft, 0.1);
+  border-radius: 0.85rem;
+  background: rgba($cd-surface, 0.8);
+  box-shadow: $smooth-shadow-sm;
+}
+
+.settings-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.settings-tab {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid transparent;
+  border-radius: 0.65rem;
+  background: transparent;
+  color: $cd-muted-dark;
+  text-align: left;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+
+  &:hover {
+    border-color: rgba($cd-sage-dark, 0.18);
+    background: rgba($cd-sage, 0.1);
+    color: $cd-ink-raised;
+  }
+
+  &.active {
+    border-color: rgba($cd-sage-dark, 0.28);
+    background: #fff;
+    color: $cd-ink-raised;
+    box-shadow: 0 4px 12px rgba($cd-ink, 0.06);
+  }
+}
+
+.settings-tab-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 2.1rem;
+  height: 2.1rem;
+  place-items: center;
+  border-radius: 0.55rem;
+  background: rgba($cd-sage, 0.18);
+  color: $cd-sage-deep;
+}
+
+.settings-tab-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.1rem;
+
+  strong,
+  small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  strong {
+    font-size: 0.82rem;
+  }
+
+  small {
+    color: $cd-muted-dark;
+    font-size: 0.7rem;
+  }
+}
+
+.settings-panel-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+
+  h2 {
+    margin: 0;
+    font-size: 1.35rem;
+  }
+
+  p {
+    margin: 0 0 0.1rem;
+    color: $cd-muted-dark;
+    font-size: 0.85rem;
+  }
+}
+
+.settings-panel > .row:last-child,
+.settings-panel > .card:last-child {
+  margin-bottom: 0 !important;
+}
+
+.entitlement-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid rgba($cd-amber, 0.3);
+  border-radius: 0.8rem;
+  background: linear-gradient(100deg, rgba($cd-amber, 0.12), rgba($cd-surface, 0.96) 54%);
+  color: $cd-ink-raised;
+  box-shadow: 0 8px 24px rgba($cd-ink, 0.04);
+
+  .entitlement-banner-mark {
+    display: grid;
+    flex: 0 0 auto;
+    width: 2.5rem;
+    height: 2.5rem;
+    place-items: center;
+    border-radius: 0.7rem;
+    background: $cd-ink-raised;
+    color: $cd-amber;
+  }
+
+  .entitlement-banner-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .entitlement-banner-title {
+    display: block;
+    margin-bottom: 0.1rem;
+    font-size: 0.9rem;
+  }
+
+  .entitlement-banner-text {
+    margin: 0;
+    color: $cd-muted-dark;
+    font-size: 0.82rem;
+  }
+
+  .entitlement-banner-action {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  &.entitlement-banner-danger {
+    border-color: rgba($cd-danger, 0.28);
+    background: linear-gradient(100deg, rgba($cd-danger, 0.1), rgba($cd-surface, 0.96) 54%);
+
+    .entitlement-banner-mark {
+      background: $cd-danger;
+      color: #fff;
+    }
+  }
+
+  &.entitlement-banner-info {
+    border-color: rgba($cd-sage-dark, 0.24);
+    background: rgba($cd-sage, 0.1);
+  }
+}
+
+.billing-upgrade-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba($cd-amber, 0.3);
+  border-radius: 0.75rem;
+  background: linear-gradient(100deg, rgba($cd-amber, 0.12), rgba($cd-surface, 0.95));
+
+  .billing-upgrade-icon {
+    display: grid;
+    flex: 0 0 auto;
+    width: 2.35rem;
+    height: 2.35rem;
+    place-items: center;
+    border-radius: 0.65rem;
+    background: $cd-ink-raised;
+    color: $cd-amber;
+  }
+
+  .billing-upgrade-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  strong {
+    display: block;
+    margin-bottom: 0.2rem;
+    color: $cd-ink-raised;
+  }
+
+  p {
+    margin: 0;
+    color: $cd-muted-dark;
+    font-size: 0.82rem;
+  }
+}
+
+.api-key-generated,
+.api-key-help {
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+}
+
+.api-key-generated {
+  border: 1px solid rgba($cd-amber, 0.38);
+  background: linear-gradient(120deg, rgba($cd-amber, 0.16), rgba($cd-surface, 0.96));
+
+  h4 {
+    color: $cd-ink-raised;
+  }
+
+  p {
+    color: $cd-muted-dark;
+  }
+}
+
+.api-key-value,
+.api-key-command {
+  overflow-wrap: anywhere;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba($cd-ink-soft, 0.12);
+  border-radius: 0.55rem;
+  background: rgba(#fff, 0.88);
+}
+
+.api-key-empty {
+  padding: 3rem 1.5rem;
+}
+
+.api-key-row {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid rgba($cd-ink-soft, 0.08);
+}
+
+.api-key-row:first-child {
+  border-top: 0;
+}
+
+.api-key-help {
+  border: 1px solid rgba($cd-sage-dark, 0.22);
+  background: rgba($cd-sage, 0.11);
+
+  h4,
+  p {
+    color: $cd-sage-deep;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .settings-overview {
+    align-items: flex-start;
+    padding: 1.35rem;
+  }
+
+  .settings-overview-mark {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+
+  .settings-tabs {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .settings-tab {
+    flex: 0 0 auto;
+    min-width: 10.5rem;
+  }
+
+  .settings-panel-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .entitlement-banner,
+  .billing-upgrade-card {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .entitlement-banner-action {
+    margin-left: 3.5rem;
+  }
+}
+
 .nav-icon-button {
   display: inline-grid;
   place-items: center;

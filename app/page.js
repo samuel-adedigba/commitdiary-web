@@ -1,109 +1,115 @@
 import LandingPage from "../components/landing/LandingPage";
+import { faqs, setupSteps } from "../components/landing/landing-content";
 import { siteConfig, socialImage } from "../lib/siteConfig";
 
-const siteUrl = siteConfig.siteUrl || undefined;
+const siteUrl = siteConfig.siteUrl;
+const organizationId = `${siteUrl}/#organization`;
+const softwareId = `${siteUrl}/#software`;
 
 export const metadata = {
   title: {
-    absolute: "CommitDiary | Turn Git Commits Into Clear Developer Work Reports",
+    absolute: "CommitDiary | Developer Work Journal for VS Code",
   },
   description:
-    "CommitDiary turns Git history into clear engineering work reports for standups, sprint reviews, retrospectives, release notes, Discord updates, and developer portfolios.",
+    "Turn Git commits into clear engineering reports for standups, reviews, portfolios, and team updates with a local-first VS Code extension.",
   keywords: [
     "developer work journal",
-    "Git work journal",
     "Git commit report",
-    "AI commit summary",
     "engineering progress report",
-    "developer standup tool",
     "VS Code Git extension",
-    "developer productivity history",
+    "developer productivity tool",
+    "standup update from Git",
+    "AI engineering report",
+    "software engineering journal",
   ],
-  ...(siteUrl ? { alternates: { canonical: siteUrl } } : {}),
+  alternates: { canonical: siteUrl },
   openGraph: {
     type: "website",
-    ...(siteUrl ? { url: siteUrl } : {}),
+    url: siteUrl,
     siteName: "CommitDiary",
-    title: "Turn Git history into clear engineering work reports",
+    title: "CommitDiary | Developer work journal for VS Code",
     description:
-      "A developer work journal that turns commits into useful standups, reviews, release notes, and proof of work.",
+      "Turn Git commits into useful standups, reviews, portfolios, and team updates with a local-first VS Code extension.",
     images: [socialImage],
   },
   twitter: {
     card: "summary_large_image",
-    title: "CommitDiary | Your Git history, made readable",
+    title: "CommitDiary | Developer work journal for VS Code",
     description:
-      "Turn commits into useful engineering reports with a VS Code extension and reliable AI through Stepper.",
+      "Turn Git commits into clear engineering reports with a local-first VS Code extension.",
     images: [socialImage.url],
   },
 };
-
-const faqItems = [
-  [
-    "What is CommitDiary?",
-    "CommitDiary is a developer work journal that turns Git activity into clear reports about what changed and why it may matter.",
-  ],
-  [
-    "How does CommitDiary work?",
-    "The VS Code extension reads commit context, stores a local journal, and can sync authenticated data for reports, dashboards, badges, and notifications.",
-  ],
-  [
-    "Does CommitDiary upload my whole repository?",
-    "No. Authenticated cloud reporting sends commit metadata and bounded diff evidence, including sampled patch excerpts, instead of the whole repository.",
-  ],
-  [
-    "What is Stepper?",
-    "Stepper is the AI reliability engine behind CommitDiary. It handles provider routing, retries, failover, validation, callbacks, and structured output.",
-  ],
-];
 
 const structuredData = [
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
+    "@id": softwareId,
     name: "CommitDiary",
     url: siteUrl,
     applicationCategory: "DeveloperApplication",
     applicationSubCategory: "Developer productivity and Git reporting",
     operatingSystem: "Windows, macOS, Linux",
     description:
-      "CommitDiary turns Git commit history into clear engineering work reports for standups, sprint reviews, retrospectives, release notes, Discord updates, and developer portfolios.",
-    downloadUrl: siteConfig.marketplaceUrl || undefined,
+      "CommitDiary turns Git commit history into clear engineering work reports for standups, reviews, release notes, Discord updates, and developer portfolios.",
+    downloadUrl: siteConfig.marketplaceUrl,
     featureList: [
       "Automatic Git commit discovery",
       "Commit categorization",
       "Local commit journal",
-      "Structured AI reports through Stepper",
       "Offline queueing",
+      "Structured engineering reports",
+      "AI reports through Stepper",
       "Discord notifications",
       "Shareable activity badges",
     ],
-    offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "USD",
-      availability: "https://schema.org/InStock",
-    },
+    isAccessibleForFree: true,
   },
   {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": organizationId,
     name: "CommitDiary",
     url: siteUrl,
-    logo: siteUrl ? `${siteUrl}/images/brand/commitdiary-mark-512.png` : undefined,
-    sameAs: [siteConfig.marketplaceUrl].filter(Boolean),
+    logo: `${siteUrl}/images/brand/commitdiary-mark-512.png`,
+    sameAs: [siteConfig.githubUrl],
   },
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": `${siteUrl}/#website`,
     name: "CommitDiary",
     url: siteUrl,
-    description: "Developer work journal powered by Git history and Stepper.",
+    description: "A local-first developer work journal powered by Git history and Stepper.",
+    publisher: { "@id": organizationId },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": `${siteUrl}/#webpage`,
+    name: "CommitDiary | Developer Work Journal for VS Code",
+    url: siteUrl,
+    isPartOf: { "@id": `${siteUrl}/#website` },
+    about: { "@id": softwareId },
+    description: "Turn Git commits into clear engineering reports for standups, reviews, portfolios, and team updates with a local-first VS Code extension.",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: "Set up CommitDiary in VS Code",
+    description: "Install the CommitDiary extension, create a workspace, and connect cloud sync when needed.",
+    step: setupSteps.map((step) => ({
+      "@type": "HowToStep",
+      name: step.title,
+      text: step.text,
+      position: Number(step.number),
+    })),
   },
   {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: faqItems.map(([question, answer]) => ({
+    mainEntity: faqs.map(({ question, answer }) => ({
       "@type": "Question",
       name: question,
       acceptedAnswer: {

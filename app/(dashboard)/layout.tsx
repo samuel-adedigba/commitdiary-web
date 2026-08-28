@@ -2,6 +2,7 @@
 
 import React, { type ReactNode, useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "/hooks/useMediaQuery";
+import { usePathname } from "next/navigation";
 import "styles/theme.scss";
 import "styles/datatable.css";
 import NavbarVertical from "/layouts/navbars/NavbarVertical";
@@ -16,6 +17,7 @@ type DashboardLayoutProps = {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
+  const pathname = usePathname();
   const navigationRef = useRef<HTMLElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
   const restoreFocusOnCloseRef = useRef(false);
@@ -137,7 +139,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             />
           </div>
           <main id="dashboard-main-content" className="dashboard-main-content" tabIndex={-1}>
-            <div className="px-3 pt-3"><EntitlementBanner /></div>
+            {pathname !== "/admin" && <div className="px-3 pt-3"><EntitlementBanner /></div>}
             {children}
           </main>
         </div>

@@ -1,7 +1,7 @@
 export const navigation = [
-  { label: "Features", href: "/features" },
-  { label: "How it works", href: "/how-it-works" },
-  { label: "Pricing", href: "/pricing" },
+  { label: "Features", href: "/#features" },
+  { label: "How it works", href: "/#how-it-works" },
+  { label: "Pricing", href: "/#pricing" },
   { label: "Setup", href: "/#setup" },
   { label: "Docs", href: "/docs" },
 ];
@@ -16,224 +16,107 @@ export const rawCommits = [
 export const workflowSteps = [
   {
     number: "01",
-    title: "Commit as usual",
-    text: "CommitDiary starts with the Git history your work already creates.",
+    title: "Install in VS Code",
+    text: "CommitDiary starts where your work already happens: inside the editor.",
   },
   {
     number: "02",
-    title: "Read the context",
-    text: "The extension finds your commits, changed files, categories, and affected components.",
+    title: "Keep a local journal",
+    text: "Your commits, changed files, categories, and affected components stay useful even offline.",
   },
   {
     number: "03",
-    title: "Sync when you choose",
-    text: "Authenticated sync unlocks reports, dashboards, badges, and team visibility.",
+    title: "Connect when ready",
+    text: "Authenticated sync adds hosted history, reports, sharing, and Discord delivery when you need them.",
   },
   {
     number: "04",
-    title: "Generate with Stepper",
-    text: "Stepper routes the AI job, handles failures, and validates a predictable report.",
-  },
-  {
-    number: "05",
-    title: "Use the update",
-    text: "Bring the result to updates, reviews, Discord, or portfolio evidence.",
+    title: "Turn work into an update",
+    text: "Edit a structured report for a standup, review, portfolio, or the next person who needs context.",
   },
 ];
 
 export const setupSteps = [
   {
     number: "01",
-    title: "Install the VS Code extension",
-    text: "Install CommitDiary from the VS Code Marketplace, then open a Git repository in VS Code.",
+    title: "Install the extension",
+    text: "Get CommitDiary from the VS Code Marketplace and open a Git repository.",
   },
   {
     number: "02",
-    title: "Create your CommitDiary account",
-    text: "Sign up on the dashboard so your local journal can connect to your private workspace.",
+    title: "Create your workspace",
+    text: "Sign up for the dashboard so your editor can connect to your private workspace.",
   },
   {
     number: "03",
-    title: "Create an API key",
-    text: "Open Settings → API keys in the dashboard and create a key for this editor installation.",
+    title: "Connect cloud sync",
+    text: "Create an API key in Settings, then run “CommitDiary: Setup Cloud Sync” in VS Code. The key stays in SecretStorage.",
   },
-  {
-    number: "04",
-    title: "Connect the extension",
-    text: "Run “CommitDiary: Setup Cloud Sync” in VS Code and paste the key into the secure prompt. The extension stores it in VS Code SecretStorage.",
-  },
-  {
-    number: "05",
-    title: "Choose what to sync",
-    text: "Enable a repository, make a commit, and let the extension queue and sync bounded commit evidence when you are ready.",
-  },
-  {
-    number: "06",
-    title: "Configure reports and Discord",
-    text: "In dashboard Settings, choose report preferences and add a Discord webhook if you want delivery to a team channel. Webhook URLs are masked after saving.",
-  },
-];
-
-export const stepperCapabilities = [
-  "Provider routing",
-  "Retry and backoff",
-  "Rate limits",
-  "Circuit breakers",
-  "Schema validation",
-  "Secret redaction",
-  "Callbacks",
-  "Metrics",
 ];
 
 export const featureGroups = [
   {
-    eyebrow: "For your own work",
-    title: "Remember the work, not the hashes.",
-    text: "Keep a useful record of what you built, fixed, tested, and improved across repositories.",
-    items: [
-      "Automatic commit discovery",
-      "Local commit journal",
-      "Work categories and components",
-      "Time-range metrics and commit reports",
-      "Public activity badges",
-    ],
+    eyebrow: "Personal memory",
+    title: "Remember what the work meant.",
+    text: "Keep a useful history of features, fixes, tests, refactors, and maintenance across repositories.",
+    items: ["Automatic commit discovery", "Local-first journal", "Categories and affected components"],
   },
   {
-    eyebrow: "For team communication",
-    title: "Give progress a shared language.",
-    text: "Turn implementation details into updates that engineering and product teams can both read.",
-    items: [
-      "Repository-level reports",
-      "Sprint and review evidence",
-      "Technical debt visibility",
-      "Discord notifications",
-      "Shareable report links",
-    ],
+    eyebrow: "Team clarity",
+    title: "Explain progress without the archaeology.",
+    text: "Give engineering and product one readable layer above commit hashes and raw diffs.",
+    items: ["Structured engineering reports", "Shareable activity and report links", "Discord delivery"],
   },
   {
-    eyebrow: "For real workflows",
-    title: "Keep working when systems wobble.",
-    text: "Local storage, queued sync, report backfills, and Stepper keep the workflow dependable.",
-    items: [
-      "Offline queueing",
-      "Retryable cloud sync",
-      "Historical report backfills",
-      "Authenticated data access",
-      "Structured AI output",
-    ],
-  },
-];
-
-export const templates = [
-  {
-    id: "standup",
-    label: "Daily standup",
-    meta: "Yesterday · Today · Blockers",
-    title: "A standup that reflects the work.",
-    body: "Improved API sync reliability and added retry coverage for failed queue jobs.",
-    detail:
-      "Next: test repository report generation and confirm webhook retry behavior.",
-    tags: ["sync", "test", "reliability"],
-  },
-  {
-    id: "weekly",
-    label: "Weekly update",
-    meta: "Progress · Impact · Next",
-    title: "A week of commits, made readable.",
-    body: "This week focused on sync reliability, report generation, and dashboard visibility.",
-    detail:
-      "The system is better prepared for unstable networks and delayed AI callbacks.",
-    tags: ["reporting", "dashboard", "api"],
-  },
-  {
-    id: "sprint",
-    label: "Sprint review",
-    meta: "Outcome · Work · Review note",
-    title: "Show the outcome behind the tickets.",
-    body: "The repository reporting flow moved closer to production readiness.",
-    detail:
-      "Work covered commit discovery, Stepper jobs, dashboard states, and Discord notifications.",
-    tags: ["sprint", "delivery", "product"],
-  },
-  {
-    id: "debt",
-    label: "Technical debt",
-    meta: "Change · Reason · Follow-up",
-    title: "Make invisible maintenance visible.",
-    body: "Separated dashboard components and moved sync handling into focused modules.",
-    detail:
-      "The codebase is easier to maintain and future report changes should be safer.",
-    tags: ["refactor", "architecture", "quality"],
+    eyebrow: "Responsible AI",
+    title: "Useful output, with its limits visible.",
+    text: "Stepper validates the report path while you keep code review, testing, and judgment in charge.",
+    items: ["Bounded diff evidence", "Retry-safe report jobs", "Provider-flexible structured output"],
   },
 ];
 
 export const useCases = [
-  ["Standups", "Walk in with a clear update, not a rushed scan of yesterday’s commits."],
-  ["Weekly reports", "Explain progress, impact, and the work that still needs attention."],
-  ["Sprint reviews", "Give product and engineering teams one readable view of delivery."],
-  ["Retrospectives", "See patterns in fixes, tests, technical debt, and delivery flow."],
-  ["Portfolio proof", "Share a real work history through reports and activity badges."],
-  ["Open source", "Summarize contributor work, releases, fixes, and repository progress."],
-];
-
-export const personas = [
-  {
-    label: "New developers",
-    title: "Explain your work with confidence.",
-    text: "See how features, fixes, tests, refactors, and chores add up to meaningful progress.",
-  },
-  {
-    label: "Experienced developers",
-    title: "Preserve context across complex work.",
-    text: "Track architecture changes, incidents, refactors, and cross-repository progress without rebuilding the story later.",
-  },
-  {
-    label: "Product and engineering teams",
-    title: "Read progress without reading every diff.",
-    text: "Share useful outcomes while keeping code review and engineering judgment where they belong.",
-  },
+  ["Standups", "Walk in with a clear account of what changed and what comes next."],
+  ["Reviews", "Show outcomes and maintenance work without asking everyone to read every diff."],
+  ["Portfolios", "Turn real engineering history into proof of how you build."],
+  ["Open source", "Give contributors and maintainers a readable record of repository progress."],
 ];
 
 export const faqs = [
   {
     question: "What is CommitDiary?",
     answer:
-      "CommitDiary is a developer work journal. It turns Git activity into clear reports that explain what you worked on, what changed, and why it may matter.",
+      "CommitDiary is a developer work journal for VS Code. It turns Git activity into clear reports about what changed, why it mattered, and what may need attention next.",
   },
   {
-    question: "How does CommitDiary work?",
+    question: "How does the VS Code extension work?",
     answer:
-      "The VS Code extension discovers your commits and keeps a local journal. Authenticated sync can send commit metadata and bounded diff evidence to generate reports, dashboards, badges, and notifications.",
+      "The extension discovers commits in your repository and keeps a local journal. If you connect cloud sync, it sends authenticated, bounded commit evidence to the dashboard for reports and sharing.",
   },
   {
     question: "Does CommitDiary upload my whole repository?",
     answer:
-      "No. Authenticated cloud reporting sends commit metadata, file paths, diff statistics, and sampled patch excerpts within a fixed size limit—not the whole repository.",
-  },
-  {
-    question: "What does Stepper do?",
-    answer:
-      "Stepper is the reliability engine behind AI reports. It handles provider routing, retries, rate limits, failover, validation, callbacks, and structured output.",
-  },
-  {
-    question: "Which AI provider powers CommitDiary?",
-    answer:
-      "Stepper is provider-flexible. The active AI provider depends on the deployment configuration, so CommitDiary is not tied to one vendor.",
+      "No. Authenticated cloud reporting uses commit metadata, file paths, diff statistics, and bounded sampled patch excerpts. It does not upload the whole repository.",
   },
   {
     question: "Can I use CommitDiary offline?",
     answer:
-      "Yes. Commit discovery and local storage work in your editor. Unsynced work can wait in a local queue until you reconnect.",
+      "Yes. Commit discovery and local storage work in the editor. Unsynced work can wait in a local queue until you reconnect.",
   },
   {
-    question: "Can CommitDiary create standup and release updates?",
+    question: "What does Stepper do?",
     answer:
-      "Its current product generates structured per-commit reports. You can edit and reuse them for updates and portfolio evidence; aggregate weekly and release-note workflows are planned separately.",
+      "Stepper is the reliability layer behind AI reports. It handles provider routing, retries, rate limits, failover, validation, callbacks, and structured output.",
   },
   {
-    question: "Does CommitDiary replace code review?",
+    question: "Does it replace code review?",
     answer:
-      "No. CommitDiary summarizes engineering activity. It does not replace code review, testing, product context, or engineering judgment.",
+      "No. CommitDiary summarizes engineering activity. It does not replace code review, tests, product context, or engineering judgment.",
+  },
+  {
+    question: "Who is CommitDiary for?",
+    answer:
+      "It is useful for solo developers, students, teams, maintainers, and anyone who needs to explain software work clearly—from daily updates to portfolio evidence.",
   },
 ];
 
@@ -241,9 +124,8 @@ export const footerGroups = [
   {
     title: "Product",
     links: [
-      ["Features", "/features"],
-      ["How it works", "/how-it-works"],
-      ["Report templates", "/templates"],
+      ["Features", "/#features"],
+      ["How it works", "/#how-it-works"],
       ["Privacy", "/privacy"],
     ],
   },
@@ -253,7 +135,6 @@ export const footerGroups = [
       ["Documentation", "/docs"],
       ["VS Code Marketplace", "/marketplace"],
       ["Setup guide", "/#setup"],
-      ["Discord setup", "/discord"],
     ],
   },
   {
@@ -262,7 +143,16 @@ export const footerGroups = [
       ["Install the extension", "/install"],
       ["Sign in", "/login"],
       ["Open dashboard", "/dashboard"],
-      ["Pricing", "/pricing"],
+      ["Pricing", "/#pricing"],
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      ["Terms", "/terms"],
+      ["Refunds", "/refunds"],
+      ["Cookies", "/cookies"],
+      ["Contact", "/contact"],
     ],
   },
 ];

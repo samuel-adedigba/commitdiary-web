@@ -54,25 +54,27 @@ export default function PricingSection() {
 
   return (
     <section id="pricing" className={styles.accessSection} aria-labelledby="access-title">
-      <div className={styles.accessCopy}>
-        <p className={styles.eyebrow}>Start with your next commit</p>
-        <h2 id="access-title">The extension is the front door.</h2>
-        <p>
-          Install CommitDiary in VS Code, create your account, securely add your API key through the setup command, and let your work journal build from there.
-        </p>
-      </div>
-      <div className="mb-4 d-flex gap-2" role="group" aria-label="Billing frequency">
-        {(["monthly", "annual"]).map((option) => (
-          <button
-            key={option}
-            type="button"
-            className={option === cadence ? styles.primaryButton : styles.secondaryButton}
-            aria-pressed={option === cadence}
-            onClick={() => setCadence(option)}
-          >
-            {option === "monthly" ? "Monthly" : "Annual — 10 months’ price"}
-          </button>
-        ))}
+      <div className={styles.accessHeader}>
+        <div className={styles.accessCopy}>
+          <p className={styles.eyebrow}>Plans that stay understandable</p>
+          <h2 id="access-title">Start local. Add hosted features when they earn their place.</h2>
+          <p>
+            The VS Code extension and local journal are the starting point. Paid plans add hosted history, AI reports, sharing, and Discord delivery.
+          </p>
+        </div>
+        <div className={styles.billingSwitch} role="group" aria-label="Billing frequency">
+          {(["monthly", "annual"]).map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={option === cadence ? styles.primaryButton : styles.secondaryButton}
+              aria-pressed={option === cadence}
+              onClick={() => setCadence(option)}
+            >
+              {option === "monthly" ? "Monthly" : "Annual"}
+            </button>
+          ))}
+        </div>
       </div>
       <div className={styles.pricingGrid}>
         {catalog.plans.map((plan) => {
@@ -99,7 +101,9 @@ export default function PricingSection() {
           );
         })}
       </div>
-      <p className={styles.pricingNote}>Paid plans are billed through Paddle. Final currency and tax details are shown during checkout.</p>
+      <p className={styles.pricingNote}>
+        Paid plans are billed through Paddle. Final currency, tax, renewal, and total details are shown during checkout. <Link href="/terms">Terms</Link> · <Link href="/refunds">Refund policy</Link>.
+      </p>
     </section>
   );
 }

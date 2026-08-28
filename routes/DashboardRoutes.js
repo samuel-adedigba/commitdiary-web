@@ -66,6 +66,13 @@ export const DashboardMenu = [
     icon: "package",
     link: "/marketplace",
   },
+  {
+    id: uuid(),
+    title: "Admin",
+    icon: "shield",
+    link: "/admin",
+    adminOnly: true,
+  },
 ];
 
 export default DashboardMenu;

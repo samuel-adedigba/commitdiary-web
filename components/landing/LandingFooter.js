@@ -9,9 +9,9 @@ export default function LandingFooter() {
       <div className={styles.footerGrid}>
         <div className={styles.footerIntro}>
           <BrandMark size={48} />
-          <h2>A clearer memory of the work you ship.</h2>
+          <h2>Your work, made easier to explain.</h2>
           <p>
-            CommitDiary turns Git activity into reports developers can use and teams can understand.
+            A local-first work journal for developers who want more context from Git.
           </p>
         </div>
 

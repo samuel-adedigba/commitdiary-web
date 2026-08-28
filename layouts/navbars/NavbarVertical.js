@@ -15,9 +15,14 @@ import "simplebar/dist/simplebar.min.css";
 
 // import routes file
 import { DashboardMenu } from "routes/DashboardRoutes";
+import { useAuth } from "lib/auth-context";
 
 const NavbarVertical = (props) => {
   const location = usePathname();
+  const { user } = useAuth();
+  const visibleMenu = DashboardMenu.filter(
+    (menu) => !menu.adminOnly || user?.role === "admin",
+  );
   const CustomToggle = ({ children, eventKey, icon }) => {
     const { activeEventKey } = useContext(AccordionContext);
     const decoratedOnClick = useAccordionButton(eventKey, () => {});
@@ -116,7 +121,7 @@ const NavbarVertical = (props) => {
           as="ul"
           className="navbar-nav flex-column"
         >
-          {DashboardMenu.map(function (menu, index) {
+          {visibleMenu.map(function (menu, index) {
             if (menu.grouptitle) {
               return (
                 <Card bsPrefix="nav-item" key={index}>
