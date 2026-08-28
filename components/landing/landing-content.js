@@ -74,54 +74,6 @@ export const setupSteps = [
   },
 ];
 
-export const pricingPlans = [
-  {
-    id: "local",
-    name: "Local",
-    price: "$0",
-    cadence: "forever",
-    label: "Start here",
-    description: "Keep a private work journal in VS Code while you decide if cloud reporting is useful.",
-    features: ["Commit discovery", "Local journal", "Offline queue", "No card required"],
-    cta: "Install the extension",
-    href: "/install",
-  },
-  {
-    id: "founding-solo",
-    name: "Founding Solo",
-    price: "$5",
-    cadence: "per month",
-    label: "Early access",
-    description: "A low-cost hosted plan for developers who want reports, history, and one Discord destination.",
-    features: ["Up to 5 repositories", "Hosted reports", "50 report jobs / month", "1 Discord webhook"],
-    cta: "See what’s included",
-    href: "/pricing",
-    featured: true,
-  },
-  {
-    id: "solo",
-    name: "Solo",
-    price: "$8",
-    cadence: "per month",
-    label: "Planned launch",
-    description: "For an active personal portfolio, multiple repositories, and regular reporting.",
-    features: ["Up to 10 repositories", "Hosted reports", "100 report jobs / month", "1 Discord webhook"],
-    cta: "See launch details",
-    href: "/pricing",
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "$15",
-    cadence: "per month",
-    label: "Planned launch",
-    description: "For public work, client delivery, and a larger reporting allowance across projects.",
-    features: ["Up to 25 repositories", "300 report jobs / month", "3 Discord webhooks", "Priority support"],
-    cta: "See launch details",
-    href: "/pricing",
-  },
-];
-
 export const stepperCapabilities = [
   "Provider routing",
   "Retry and backoff",

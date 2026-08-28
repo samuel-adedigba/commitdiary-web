@@ -6,6 +6,7 @@ import { useState } from "react";
 import AuthShell from "components/auth/AuthShell";
 import styles from "components/auth/auth.module.scss";
 import PasswordField from "components/auth/PasswordField";
+import { httpRequest } from "lib/httpClient";
 
 const signUpFields = [
   {
@@ -86,7 +87,7 @@ const SignUp = () => {
     setError("");
 
     try {
-      const response = await fetch("/api/auth/sign-up", {
+      const response = await httpRequest("/api/auth/sign-up", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

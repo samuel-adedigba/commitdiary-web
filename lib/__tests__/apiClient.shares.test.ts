@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import axios from "axios";
+
+vi.mock("axios", () => ({ default: vi.fn() }));
 
 const sharePayload = {
   title: "Weekly work",
@@ -25,14 +28,16 @@ describe("share API client", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.restoreAllMocks();
+    vi.mocked(axios).mockReset();
   });
 
   it("deduplicates identical in-flight public share requests", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: vi.fn().mockResolvedValue(sharePayload),
+    const axiosMock = vi.mocked(axios).mockResolvedValue({
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      data: sharePayload,
     });
-    vi.stubGlobal("fetch", fetchMock);
     const { getPublicShare } = await import("../apiClient");
 
     const [first, second] = await Promise.all([
@@ -40,20 +45,21 @@ describe("share API client", () => {
       getPublicShare("blaze", "abcdef123456", { page: 1, limit: 20 }),
     ]);
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(axiosMock).toHaveBeenCalledTimes(1);
     expect(first).toEqual(sharePayload);
     expect(second).toEqual(sharePayload);
   });
 
   it("uses the safe API error message returned by the server", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: false,
+    vi.mocked(axios).mockResolvedValue({
       status: 410,
-      json: vi.fn().mockResolvedValue({
+      statusText: "Gone",
+      headers: {},
+      data: {
         error: "Share has expired",
         code: "SHARE_EXPIRED",
-      }),
-    }));
+      },
+    });
     const { getPublicShare } = await import("../apiClient");
 
     await expect(
@@ -65,4 +71,3 @@ describe("share API client", () => {
     });
   });
 });
-

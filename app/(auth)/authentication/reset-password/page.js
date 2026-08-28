@@ -6,6 +6,7 @@ import { useState } from "react";
 import AuthShell from "components/auth/AuthShell";
 import styles from "components/auth/auth.module.scss";
 import PasswordField from "components/auth/PasswordField";
+import { httpRequest } from "lib/httpClient";
 
 const resetFields = [
   {
@@ -49,7 +50,7 @@ export default function ResetPassword() {
     setError("");
 
     try {
-      const response = await fetch("/api/auth/reset-password", {
+      const response = await httpRequest("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: formData.password }),

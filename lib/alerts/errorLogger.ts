@@ -4,6 +4,7 @@
  * Client-side error logging and monitoring
  * Note: Discord webhooks are sent from the server-side API
  */
+import { httpRequest } from '../httpClient';
 
 export interface ErrorAlert {
     title: string;
@@ -22,7 +23,7 @@ export function logError(alert: ErrorAlert): void {
     // In production, you could send this to your API for server-side Discord alerts
     if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
         // Optionally send to backend for centralized logging
-        fetch('/api/log-error', {
+        httpRequest('/api/log-error', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

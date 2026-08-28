@@ -6,6 +6,8 @@ import type {
     SharesResponse,
     ShareViewData,
 } from '../src/types/share'
+import { httpRequest } from './httpClient'
+import type { HttpResponse } from './httpClient'
 
 const API_URL = typeof window === 'undefined' ? (process.env.API_URL || '') : ''
 
@@ -38,8 +40,8 @@ export class ApiError extends Error {
     }
 }
 
-async function getApiError(response: Response, fallback: string): Promise<ApiError> {
-    const payload = await response.json().catch(() => null)
+async function getApiError(response: HttpResponse, fallback: string): Promise<ApiError> {
+    const payload = await response.json<Record<string, unknown> | null>().catch(() => null)
     const message = typeof payload?.error === 'string'
         ? payload.error
         : typeof payload?.message === 'string'
@@ -71,9 +73,9 @@ async function getCachedUser() {
     if (inFlightUserFetch) return inFlightUserFetch
 
     inFlightUserFetch = (async () => {
-        const response = await fetch('/api/auth/user', { cache: 'no-store' })
+        const response = await httpRequest('/api/auth/user', { cache: 'no-store' })
         if (response.ok) {
-            const payload = await response.json()
+            const payload = await response.json<{ user?: unknown }>()
             cachedUser = payload.user ?? null
             lastUserFetch = Date.now()
         }
@@ -175,7 +177,7 @@ export async function getCommits(params?: {
     }
 
     const requestPromise = (async () => {
-        const response = await fetch(url, {
+        const response = await httpRequest(url, {
             cache: 'no-store',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -186,7 +188,7 @@ export async function getCommits(params?: {
             throw new Error(`Failed to fetch commits: ${response.statusText}`)
         }
 
-        const data = await response.json()
+        const data = await response.json<{ commits?: Commit[]; total?: number; limit?: number; offset?: number }>()
         const normalized = {
             commits: data?.commits || [],
             total: data?.total || 0,
@@ -217,7 +219,7 @@ export async function getRepoMetrics(
         ...(params?.start && { start: params.start })
     })
 
-    const response = await fetch(`${API_URL}/v1/repos/${repoId}/metrics?${query}`, {
+    const response = await httpRequest(`${API_URL}/v1/repos/${repoId}/metrics?${query}`, {
         headers: {
             'Authorization': `Bearer ${token}`
         }
@@ -227,14 +229,14 @@ export async function getRepoMetrics(
         throw new Error(`Failed to fetch metrics: ${response.statusText}`)
     }
 
-    return response.json()
+    return response.json<Metrics>()
 }
 
 export async function fetchApiKeys(): Promise<ApiKey[]> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/users/api-keys`, {
+    const response = await httpRequest(`${API_URL}/v1/users/api-keys`, {
         headers: {
             'Authorization': `Bearer ${token}`
         }
@@ -244,7 +246,7 @@ export async function fetchApiKeys(): Promise<ApiKey[]> {
         throw new Error(`Failed to fetch API keys: ${response.statusText}`)
     }
 
-    const data = await response.json()
+    const data = await response.json<{ keys?: ApiKey[] }>()
     return data.keys
 }
 
@@ -252,7 +254,7 @@ export async function generateApiKey(name: string): Promise<ApiKey> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/users/api-keys`, {
+    const response = await httpRequest(`${API_URL}/v1/users/api-keys`, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -265,14 +267,14 @@ export async function generateApiKey(name: string): Promise<ApiKey> {
         throw new Error(`Failed to generate API key: ${response.statusText}`)
     }
 
-    return response.json()
+    return response.json<ApiKey>()
 }
 
 export async function revokeApiKey(keyId: string): Promise<void> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/users/api-keys/${keyId}`, {
+    const response = await httpRequest(`${API_URL}/v1/users/api-keys/${keyId}`, {
         method: 'DELETE',
         headers: {
             'Authorization': `Bearer ${token}`
@@ -288,7 +290,7 @@ export async function getUserProfile(): Promise<UserProfile> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/users/profile`, {
+    const response = await httpRequest(`${API_URL}/v1/users/profile`, {
         headers: {
             'Authorization': `Bearer ${token}`
         }
@@ -298,7 +300,7 @@ export async function getUserProfile(): Promise<UserProfile> {
         throw new Error(`Failed to fetch user profile: ${response.statusText}`)
     }
 
-    return response.json()
+    return response.json<UserProfile>()
 }
 
 export async function getRepositories(): Promise<Repository[]> {
@@ -344,7 +346,7 @@ export async function getAllMetrics(timeRange: 'week' | 'month' | 'year' | 'all'
             startDate = new Date(0)
     }
 
-    const response = await fetch(`${API_URL}/v1/users/${user.id}/commits?${new URLSearchParams({
+    const response = await httpRequest(`${API_URL}/v1/users/${user.id}/commits?${new URLSearchParams({
         from: startDate.toISOString(),
         limit: '500',
         offset: '0',
@@ -359,7 +361,7 @@ export async function getAllMetrics(timeRange: 'week' | 'month' | 'year' | 'all'
         throw new Error(`Failed to fetch metrics: ${response.statusText}`)
     }
 
-    const payload = await response.json()
+    const payload = await response.json<{ commits?: Array<{ category?: string; date: string; components?: string[] }> }>()
     const commitsList = payload.commits || []
 
     // Calculate metrics
@@ -417,7 +419,7 @@ export async function syncCommits(
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/ingest/commits`, {
+    const response = await httpRequest(`${API_URL}/v1/ingest/commits`, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -430,7 +432,7 @@ export async function syncCommits(
         throw new Error(`Failed to sync commits: ${response.statusText}`)
     }
 
-    return response.json()
+    return response.json<{ synced: number; last_synced_sha: string; server_timestamp: string }>()
 }
 
 // ==================== SHARES API ====================
@@ -439,7 +441,7 @@ export async function createShare(params: CreateShareParams): Promise<CreateShar
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/shares`, {
+    const response = await httpRequest(`${API_URL}/v1/shares`, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -452,7 +454,7 @@ export async function createShare(params: CreateShareParams): Promise<CreateShar
         throw await getApiError(response, 'We could not create the share. Try again.')
     }
 
-    const result = await response.json()
+    const result = await response.json<CreateShareResponse>()
     clearShareListCache()
     return result
 }
@@ -472,7 +474,7 @@ export async function getShares(params?: { page?: number; limit?: number }): Pro
     if (inFlight) return inFlight
 
     const requestPromise = (async () => {
-        const response = await fetch(`${API_URL}/v1/shares?${query}`, {
+        const response = await httpRequest(`${API_URL}/v1/shares?${query}`, {
             cache: 'no-store',
             headers: { 'Authorization': `Bearer ${token}` }
         })
@@ -480,7 +482,7 @@ export async function getShares(params?: { page?: number; limit?: number }): Pro
             throw await getApiError(response, 'We could not load your shares. Try again.')
         }
 
-        const data = await response.json()
+        const data = await response.json<SharesResponse>()
         recentShareListResponses.set(requestKey, { ts: Date.now(), data })
         return data
     })()
@@ -497,7 +499,7 @@ export async function revokeShare(shareId: string): Promise<RevokeShareResponse>
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/shares/${encodeURIComponent(shareId)}`, {
+    const response = await httpRequest(`${API_URL}/v1/shares/${encodeURIComponent(shareId)}`, {
         method: 'DELETE',
         headers: {
             'Authorization': `Bearer ${token}`
@@ -508,7 +510,7 @@ export async function revokeShare(shareId: string): Promise<RevokeShareResponse>
         throw await getApiError(response, 'We could not revoke the share. Try again.')
     }
 
-    const result = await response.json()
+    const result = await response.json<RevokeShareResponse>()
     clearShareListCache()
     return result
 }
@@ -532,7 +534,7 @@ export async function getPublicShare(username: string, token: string, params?: {
     if (inFlight) return inFlight
 
     const requestPromise = (async () => {
-        const response = await fetch(
+        const response = await httpRequest(
             `${API_URL}/v1/public/shares/${encodeURIComponent(username)}/${encodeURIComponent(token)}?${query}`,
             { cache: 'no-store' },
         )
@@ -541,7 +543,7 @@ export async function getPublicShare(username: string, token: string, params?: {
             throw await getApiError(response, 'We could not load this share. Try again.')
         }
 
-        const data = await response.json()
+        const data = await response.json<ShareViewData>()
         recentPublicShareResponses.set(requestKey, { ts: Date.now(), data })
         return data
     })()
@@ -558,10 +560,11 @@ export async function exportShare(shareId: string, format: 'md' | 'csv'): Promis
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/shares/${encodeURIComponent(shareId)}/export?format=${format}`, {
+    const response = await httpRequest(`${API_URL}/v1/shares/${encodeURIComponent(shareId)}/export?format=${format}`, {
         headers: {
             'Authorization': `Bearer ${token}`
-        }
+        },
+        responseType: 'blob',
     })
 
     if (!response.ok) {
@@ -685,7 +688,7 @@ export async function getReposWithReportSettings(): Promise<RepositoryWithReport
     }
 
     inFlightReposReportsRequest = (async () => {
-        const response = await fetch(`${API_URL}/v1/repos/reports`, {
+        const response = await httpRequest(`${API_URL}/v1/repos/reports`, {
             cache: 'no-store',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -696,7 +699,7 @@ export async function getReposWithReportSettings(): Promise<RepositoryWithReport
             throw await getApiError(response, 'We could not load your repositories. Try again.')
         }
 
-        const data = await response.json()
+        const data = await response.json<{ repos?: RepositoryWithReports[] }>()
         const repos = data.repos || []
         recentReposReportsResponse = { ts: Date.now(), data: repos }
         return repos
@@ -716,7 +719,7 @@ export async function toggleRepoReports(repoId: string, enabled: boolean): Promi
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/repos/${repoId}/reports/toggle`, {
+    const response = await httpRequest(`${API_URL}/v1/repos/${repoId}/reports/toggle`, {
         method: 'PUT',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -726,12 +729,12 @@ export async function toggleRepoReports(repoId: string, enabled: boolean): Promi
     })
 
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }))
+        const errorData = await response.json<{ error?: string }>().catch(() => ({ error: response.statusText }))
         throw new Error(errorData.error || `Failed to toggle reports: ${response.statusText}`)
     }
 
     clearReposReportsCache()
-    return response.json()
+    return response.json<{ message: string; enabled: boolean; backfill?: BackfillStatus | null }>()
 }
 
 /**
@@ -741,7 +744,7 @@ export async function getPendingJobsCount(repoId: string): Promise<{ pendingCoun
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/repos/${repoId}/jobs/pending`, {
+    const response = await httpRequest(`${API_URL}/v1/repos/${repoId}/jobs/pending`, {
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -752,7 +755,7 @@ export async function getPendingJobsCount(repoId: string): Promise<{ pendingCoun
         throw new Error(`Failed to get pending jobs: ${response.statusText}`)
     }
 
-    return response.json()
+    return response.json<{ pendingCount: number; failedCount: number; totalJobs: number }>()
 }
 
 /**
@@ -762,7 +765,7 @@ export async function recoverJobs(): Promise<{ success: boolean; results: { reco
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/jobs/recover`, {
+    const response = await httpRequest(`${API_URL}/v1/jobs/recover`, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -775,7 +778,7 @@ export async function recoverJobs(): Promise<{ success: boolean; results: { reco
     }
 
     clearReposReportsCache()
-    return response.json()
+    return response.json<{ success: boolean; results: { recovered: number; failed: number; errors: string[] } }>()
 }
 
 /**
@@ -785,7 +788,7 @@ export async function getSystemHealth(): Promise<{ status: string; timestamp: st
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/system/health`, {
+    const response = await httpRequest(`${API_URL}/v1/system/health`, {
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -796,13 +799,13 @@ export async function getSystemHealth(): Promise<{ status: string; timestamp: st
         throw new Error(`Failed to get system health: ${response.statusText}`)
     }
 
-    return response.json()
+    return response.json<{ status: string; timestamp: string; statistics: { pendingJobs: number; failedJobs: number; activeBackfills: number } }>()
 }
 export async function getBackfillStatus(repoId: string): Promise<{ backfill: BackfillStatus | null }> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/repos/${repoId}/reports/backfill`, {
+    const response = await httpRequest(`${API_URL}/v1/repos/${repoId}/reports/backfill`, {
         headers: {
             'Authorization': `Bearer ${token}`
         }
@@ -812,7 +815,7 @@ export async function getBackfillStatus(repoId: string): Promise<{ backfill: Bac
         throw new Error(`Failed to fetch backfill status: ${response.statusText}`)
     }
 
-    return response.json()
+    return response.json<{ backfill: BackfillStatus | null }>()
 }
 
 /**
@@ -822,7 +825,7 @@ export async function retryBackfill(repoId: string): Promise<{ message: string; 
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/repos/${repoId}/reports/backfill/retry`, {
+    const response = await httpRequest(`${API_URL}/v1/repos/${repoId}/reports/backfill/retry`, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`
@@ -830,12 +833,12 @@ export async function retryBackfill(repoId: string): Promise<{ message: string; 
     })
 
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }))
+        const errorData = await response.json<{ error?: string }>().catch(() => ({ error: response.statusText }))
         throw new Error(errorData.error || `Failed to retry backfill: ${response.statusText}`)
     }
 
     clearReposReportsCache()
-    return response.json()
+    return response.json<{ message: string; backfill: BackfillStatus }>()
 }
 
 /**
@@ -845,7 +848,7 @@ export async function getCommitReport(commitId: string): Promise<ReportStatus> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/commits/${commitId}/report`, {
+    const response = await httpRequest(`${API_URL}/v1/commits/${commitId}/report`, {
         cache: 'no-store',
         headers: {
             'Authorization': `Bearer ${token}`
@@ -856,7 +859,7 @@ export async function getCommitReport(commitId: string): Promise<ReportStatus> {
         throw new Error(`Failed to fetch report: ${response.statusText}`)
     }
 
-    const data = await response.json()
+    const data = await response.json<ReportStatus>()
     if (data?.status === 'completed') {
         clearCommitsCache()
     }
@@ -871,7 +874,7 @@ export async function triggerCommitReport(commitId: string): Promise<ReportStatu
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/commits/${commitId}/report`, {
+    const response = await httpRequest(`${API_URL}/v1/commits/${commitId}/report`, {
         method: 'POST',
         cache: 'no-store',
         headers: {
@@ -880,11 +883,11 @@ export async function triggerCommitReport(commitId: string): Promise<ReportStatu
     })
 
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }))
+        const errorData = await response.json<{ error?: string }>().catch(() => ({ error: response.statusText }))
         throw new Error(errorData.error || `Failed to trigger report: ${response.statusText}`)
     }
 
-    const data = await response.json()
+    const data = await response.json<ReportStatus>()
     clearCommitsCache()
     return normalizeReportStatus(data)
 }
@@ -931,7 +934,7 @@ export async function fetchWebhookSettings(): Promise<WebhookSettings> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/settings/webhooks`, {
+    const response = await httpRequest(`${API_URL}/v1/settings/webhooks`, {
         headers: {
             'Authorization': `Bearer ${token}`
         }
@@ -941,7 +944,7 @@ export async function fetchWebhookSettings(): Promise<WebhookSettings> {
         throw new Error('Failed to fetch webhook settings')
     }
 
-    return response.json()
+    return response.json<WebhookSettings>()
 }
 
 /**
@@ -951,7 +954,7 @@ export async function updateWebhookSettings(payload: WebhookUpdatePayload): Prom
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/settings/webhooks`, {
+    const response = await httpRequest(`${API_URL}/v1/settings/webhooks`, {
         method: 'PUT',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -961,11 +964,11 @@ export async function updateWebhookSettings(payload: WebhookUpdatePayload): Prom
     })
 
     if (!response.ok) {
-        const error = await response.json()
+        const error = await response.json<{ error?: string }>()
         throw new Error(error.error || 'Failed to update webhook settings')
     }
 
-    return response.json()
+    return response.json<{ message: string; settings: WebhookSettings }>()
 }
 
 /**
@@ -975,7 +978,7 @@ export async function testWebhook(): Promise<{ success: boolean, message?: strin
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/settings/webhooks/test`, {
+    const response = await httpRequest(`${API_URL}/v1/settings/webhooks/test`, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`
@@ -983,11 +986,11 @@ export async function testWebhook(): Promise<{ success: boolean, message?: strin
     })
 
     if (!response.ok && response.status !== 500) {
-        const error = await response.json()
+        const error = await response.json<{ error?: string }>()
         throw new Error(error.error || 'Failed to test webhook')
     }
 
-    return response.json()
+    return response.json<{ success: boolean; message?: string; error?: string; statusCode?: number }>()
 }
 
 /**
@@ -997,7 +1000,7 @@ export async function deleteWebhookSettings(): Promise<{ message: string }> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
 
-    const response = await fetch(`${API_URL}/v1/settings/webhooks`, {
+    const response = await httpRequest(`${API_URL}/v1/settings/webhooks`, {
         method: 'DELETE',
         headers: {
             'Authorization': `Bearer ${token}`
@@ -1005,11 +1008,11 @@ export async function deleteWebhookSettings(): Promise<{ message: string }> {
     })
 
     if (!response.ok) {
-        const error = await response.json()
+        const error = await response.json<{ error?: string }>()
         throw new Error(error.error || 'Failed to delete webhook settings')
     }
 
-    return response.json()
+    return response.json<{ message: string }>()
 }
 
 /**
@@ -1023,7 +1026,7 @@ export async function fetchWebhookLogs(options?: { limit?: number, offset?: numb
     if (options?.limit) params.append('limit', options.limit.toString())
     if (options?.offset) params.append('offset', options.offset.toString())
 
-    const response = await fetch(`${API_URL}/v1/settings/webhooks/logs?${params.toString()}`, {
+    const response = await httpRequest(`${API_URL}/v1/settings/webhooks/logs?${params.toString()}`, {
         headers: {
             'Authorization': `Bearer ${token}`
         }
@@ -1033,7 +1036,7 @@ export async function fetchWebhookLogs(options?: { limit?: number, offset?: numb
         throw new Error('Failed to fetch webhook logs')
     }
 
-    return response.json()
+    return response.json<{ logs: WebhookLog[]; pagination: unknown }>()
 }
 
 export interface Entitlements {
@@ -1051,33 +1054,66 @@ export interface Entitlements {
     cancel_at_period_end: boolean
 }
 
+export interface BillingCatalogPrice {
+    price_id: string
+    name: string | null
+    description: string | null
+    cadence: 'monthly' | 'annual'
+    amount_minor: string
+    currency_code: string
+    formatted_total: string | null
+}
+
+export interface BillingCatalogPlan {
+    code: string
+    name: string
+    description: string
+    marketing_label: string
+    cta_label: string
+    featured: boolean
+    display_features: string[]
+    limits: { repositories: number; ai_reports: number; discord_webhooks: number; hosted_history_days: number | null }
+    prices: { monthly: BillingCatalogPrice | null; annual: BillingCatalogPrice | null }
+}
+
+export interface BillingCatalog {
+    provider: string
+    plans: BillingCatalogPlan[]
+}
+
+export async function getBillingCatalog(): Promise<BillingCatalog> {
+    const response = await httpRequest(`${API_URL}/v1/billing/catalog`, { cache: 'no-store' })
+    if (!response.ok) throw await getApiError(response, 'Could not load pricing')
+    return response.json<BillingCatalog>()
+}
+
 export async function getEntitlements(): Promise<Entitlements> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
-    const response = await fetch(`${API_URL}/v1/billing/entitlements`, { headers: { 'Authorization': `Bearer ${token}` }, cache: 'no-store' })
+    const response = await httpRequest(`${API_URL}/v1/billing/entitlements`, { headers: { 'Authorization': `Bearer ${token}` }, cache: 'no-store' })
     if (!response.ok) throw await getApiError(response, 'Could not load billing status')
-    return response.json()
+    return response.json<Entitlements>()
 }
 
-export async function createCheckout(plan_code: string, cadence: 'monthly' | 'annual' = 'monthly'): Promise<{ url: string }> {
+export async function createCheckout(plan_code: string, cadence: 'monthly' | 'annual' = 'monthly', idempotencyKey = globalThis.crypto.randomUUID()): Promise<{ url: string }> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
-    const response = await fetch(`${API_URL}/v1/billing/checkout`, {
+    const response = await httpRequest(`${API_URL}/v1/billing/checkout`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
         body: JSON.stringify({ plan_code, cadence })
     })
     if (!response.ok) throw await getApiError(response, 'Could not start checkout')
-    return response.json()
+    return response.json<{ url: string }>()
 }
 
 export async function createBillingPortal(): Promise<{ url: string }> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
-    const response = await fetch(`${API_URL}/v1/billing/portal`, {
+    const response = await httpRequest(`${API_URL}/v1/billing/portal`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
     })
     if (!response.ok) throw await getApiError(response, 'Billing portal unavailable')
-    return response.json()
+    return response.json<{ url: string }>()
 }

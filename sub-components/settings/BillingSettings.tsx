@@ -1,28 +1,49 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Card, Button, Alert, Badge, ProgressBar } from "react-bootstrap";
-import { getEntitlements, createCheckout, createBillingPortal, type Entitlements } from "../../lib/apiClient";
+import { createCheckout, createBillingPortal } from "../../lib/apiClient";
+import { useEntitlements } from "../../hooks/useEntitlements";
+import { useBillingCatalog } from "../../hooks/useBillingCatalog";
+
+type BillingCadence = "monthly" | "annual";
 
 export default function BillingSettings() {
-  const [entitlements, setEntitlements] = useState<Entitlements | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { entitlements, error: entitlementError, isLoading, refresh } = useEntitlements();
+  const { catalog, error: catalogError, isLoading: isCatalogLoading } = useBillingCatalog();
   const [error, setError] = useState<string|null>(null);
   const [actionLoading, setActionLoading] = useState<string|null>(null);
+  const [cadence, setCadence] = useState<BillingCadence>("monthly");
 
-  useEffect(() => { load(); }, []);
-  async function load() {
-    try { setLoading(true); setError(null); const data = await getEntitlements(); setEntitlements(data); } catch(e:any){ setError(e.message||'Failed to load billing'); } finally { setLoading(false); }
-  }
-  async function handleCheckout(plan_code: string, cadence: 'monthly'|'annual'='monthly') {
-    try { setActionLoading(plan_code); const { url } = await createCheckout(plan_code, cadence); window.location.href = url; } catch(e:any){ setError(e.message); setActionLoading(null); }
+  useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void refresh().catch(() => undefined);
+    };
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [refresh]);
+
+  async function handleCheckout(plan_code: string, selectedCadence: BillingCadence = "monthly") {
+    try {
+      setActionLoading(plan_code);
+      setError(null);
+      const requestKey = globalThis.crypto.randomUUID();
+      const { url } = await createCheckout(plan_code, selectedCadence, requestKey);
+      window.location.href = url;
+    } catch(e:any){ setError(e.message); setActionLoading(null); }
   }
   async function handlePortal() {
-    try { setActionLoading('portal'); const { url } = await createBillingPortal(); window.location.href = url; } catch(e:any){ setError(e.message); setActionLoading(null); }
+    try { setActionLoading('portal'); setError(null); const { url } = await createBillingPortal(); window.location.href = url; } catch(e:any){ setError(e.message); setActionLoading(null); }
   }
-  if (loading) return <Card><Card.Body>Loading billing...</Card.Body></Card>;
-  if (!entitlements) return <Alert variant="danger">{error||'No billing data'}</Alert>;
+  const displayError = error || entitlementError?.message || catalogError?.message;
+  if (isLoading) return <Card><Card.Body>Loading billing...</Card.Body></Card>;
+  if (!entitlements) return <Alert variant="danger">{displayError||'No billing data'}</Alert>;
   const usagePct = entitlements.limits.ai_reports ? Math.round((entitlements.usage.ai_reports_reserved / entitlements.limits.ai_reports)*100) : 0;
   const isActive = entitlements.access_active;
+  const planOptions = catalog?.plans.filter((plan) => plan.code !== "local") ?? [];
   return (
     <Card className="border shadow-sm">
       <Card.Header className="bg-white d-flex justify-content-between align-items-center">
@@ -30,7 +51,7 @@ export default function BillingSettings() {
         <Badge bg={isActive?'success': entitlements.status==='past_due'?'warning':'secondary'}>{entitlements.plan_name} — {entitlements.status}</Badge>
       </Card.Header>
       <Card.Body>
-        {error && <Alert variant="danger" dismissible onClose={()=>setError(null)}>{error}</Alert>}
+        {displayError && <Alert variant="danger" dismissible onClose={()=>setError(null)}>{displayError}</Alert>}
         {!isActive && <Alert variant="warning">Your plan is not active. Hosted features require an active subscription. <a href="/pricing">View plans</a></Alert>}
         {entitlements.cancel_at_period_end && <Alert variant="info">Your subscription will not renew. Access remains until {entitlements.current_period_end ? new Date(entitlements.current_period_end).toLocaleDateString() : 'period end'}.</Alert>}
         {entitlements.grace_period_end && entitlements.status==='past_due' && <Alert variant="warning">Payment failed. Grace period until {new Date(entitlements.grace_period_end).toLocaleDateString()}. Update payment to keep access.</Alert>}
@@ -45,14 +66,23 @@ export default function BillingSettings() {
           <small className="text-muted">Limits: {entitlements.limits.repositories} repos · {entitlements.limits.ai_reports} AI reports/month · {entitlements.limits.discord_webhooks} webhook(s) · {entitlements.limits.hosted_history_days ? `${entitlements.limits.hosted_history_days}d history` : 'unlimited history'}</small>
           {entitlements.current_period_end && <div><small>Next billing: {new Date(entitlements.current_period_end).toLocaleDateString()}</small></div>}
         </div>
+        {!isActive && <fieldset className="mb-3">
+          <legend className="h6 mb-2">Billing frequency</legend>
+          <div className="d-flex gap-2" role="group" aria-label="Billing frequency">
+            <Button type="button" size="sm" variant={cadence === "monthly" ? "primary" : "outline-secondary"} aria-pressed={cadence === "monthly"} onClick={() => setCadence("monthly")}>Monthly</Button>
+            <Button type="button" size="sm" variant={cadence === "annual" ? "primary" : "outline-secondary"} aria-pressed={cadence === "annual"} onClick={() => setCadence("annual")}>Annual — 10 months’ price</Button>
+          </div>
+        </fieldset>}
         <div className="d-flex gap-2 flex-wrap">
-          {!isActive && <>
-            <Button variant="primary" disabled={!!actionLoading} onClick={()=>handleCheckout('founding_solo')}>{actionLoading==='founding_solo'?'...':'Get Founding Solo $5'}</Button>
-            <Button variant="outline-primary" disabled={!!actionLoading} onClick={()=>handleCheckout('solo')}>{actionLoading==='solo'?'...':'Get Solo $8'}</Button>
-            <Button variant="outline-secondary" disabled={!!actionLoading} onClick={()=>handleCheckout('pro')}>{actionLoading==='pro'?'...':'Get Pro $15'}</Button>
-          </>}
+          {!isActive && isCatalogLoading && <small className="text-muted align-self-center">Loading current plans…</small>}
+          {!isActive && !isCatalogLoading && planOptions.map((plan, index) => {
+            const price = plan.prices?.[cadence];
+            const variant = index === 0 ? "primary" : index === 1 ? "outline-primary" : "outline-secondary";
+            return <Button key={plan.code} variant={variant} disabled={!!actionLoading || !price} onClick={() => handleCheckout(plan.code, cadence)}>{actionLoading === plan.code ? 'Starting checkout…' : `Get ${plan.name} ${price?.formatted_total || 'unavailable'}${price ? cadence === "annual" ? '/year' : '/month' : ''}`}</Button>;
+          })}
+          {!isActive && !isCatalogLoading && planOptions.length === 0 && <small className="text-danger">No paid plans are currently available.</small>}
           {isActive && <Button variant="outline-primary" disabled={!!actionLoading} onClick={handlePortal}>{actionLoading==='portal'?'...':'Manage billing'}</Button>}
-          <Button variant="link" onClick={load}>Refresh</Button>
+          <Button variant="link" onClick={() => { setError(null); void refresh().catch(() => undefined); }}>Refresh</Button>
         </div>
       </Card.Body>
     </Card>

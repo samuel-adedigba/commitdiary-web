@@ -8,6 +8,8 @@
  * Keep cookie names stable (cd_sb_access_token etc.) so cutover changes configuration,
  * not product contracts.
  */
+import { httpRequest, HttpResponse, HttpRequestOptions } from './httpClient'
+
 const AUTH_PROVIDER = (
   process.env.NEXT_PUBLIC_AUTH_PROVIDER ||
   process.env.AUTH_PROVIDER ||
@@ -20,14 +22,12 @@ const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "";
 
 const AUTH_REQUEST_TIMEOUT_MS = 10_000;
 
-async function fetchAuthProvider(url: string, options: RequestInit = {}) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), AUTH_REQUEST_TIMEOUT_MS);
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(timeoutId);
-  }
+async function fetchAuthProvider(url: string, options: RequestInit = {}): Promise<HttpResponse> {
+  const requestOptions: HttpRequestOptions = {
+    ...options,
+    timeout: AUTH_REQUEST_TIMEOUT_MS,
+  } as HttpRequestOptions;
+  return httpRequest(url, requestOptions);
 }
 
 function requireSupabaseConfig() {
@@ -79,14 +79,14 @@ export const authProvider = {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) return null;
-      return res.json();
+      return res.json<AuthUser>();
     }
     requireSupabaseConfig();
     const res = await fetchAuthProvider(`${SUPABASE_URL}/auth/v1/user`, {
       headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${accessToken}` },
     });
     if (!res.ok) return null;
-    return res.json();
+    return res.json<AuthUser>();
   },
 
   async refreshSession(refreshToken: string): Promise<SessionTokens | null> {
@@ -98,7 +98,7 @@ export const authProvider = {
         body: JSON.stringify({ refresh_token: refreshToken }),
       });
       if (!res.ok) return null;
-      return res.json();
+      return res.json<SessionTokens>();
     }
     requireSupabaseConfig();
     const res = await fetchAuthProvider(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
@@ -107,7 +107,7 @@ export const authProvider = {
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
     if (!res.ok) return null;
-    return res.json();
+    return res.json<SessionTokens>();
   },
 
   async exchangePkceCode(code: string, verifier: string): Promise<SessionTokens | null> {
@@ -118,7 +118,7 @@ export const authProvider = {
       body: JSON.stringify({ auth_code: code, code_verifier: verifier }),
     });
     if (!res.ok) return null;
-    return res.json();
+    return res.json<SessionTokens>();
   },
 
   async signUpWithPassword(opts: { email: string; password: string; username?: string; codeChallenge: string }) {

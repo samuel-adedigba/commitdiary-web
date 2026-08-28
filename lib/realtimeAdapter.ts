@@ -10,6 +10,7 @@
 "use client";
 
 import { supabase } from "./supabaseClient";
+import { httpRequest } from "./httpClient";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type RealtimeEventType = "INSERT" | "UPDATE" | "DELETE";
@@ -51,10 +52,10 @@ export function subscribeToCommits(
     let initialized = false;
     const poll = async () => {
       try {
-        const res = await fetch(`/v1/users/${encodeURIComponent(userId)}/commits?limit=5&offset=0`, { cache: "no-store" });
+        const res = await httpRequest(`/v1/users/${encodeURIComponent(userId)}/commits?limit=5&offset=0`, { cache: "no-store" });
         if (!res.ok) return;
-        const data = await res.json().catch(() => null);
-        const commits: any[] = data?.commits || [];
+        const data = await res.json<{ commits?: Array<{ id: string | number; [key: string]: unknown }> }>().catch(() => null);
+        const commits: Array<{ id: string | number; [key: string]: unknown }> = data?.commits || [];
         if (!initialized) {
           commits.forEach((c) => lastIds.add(c.id));
           initialized = true;
@@ -128,9 +129,9 @@ export function subscribeToReports(
     const poll = async () => {
       try {
         if (commitId) {
-          const res = await fetch(`/v1/commits/${encodeURIComponent(String(commitId))}/report`, { cache: "no-store" });
+          const res = await httpRequest(`/v1/commits/${encodeURIComponent(String(commitId))}/report`, { cache: "no-store" });
           if (!res.ok) return;
-          const data = await res.json().catch(() => null);
+          const data = await res.json<{ report?: Record<string, unknown>; id?: string | number; job?: Record<string, unknown>; status?: string }>().catch(() => null);
           // Report completed: data.report or data.id indicates report exists
           const report = data?.report || data;
           if (report?.id && report.id !== lastReportId) {

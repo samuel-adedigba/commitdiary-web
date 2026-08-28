@@ -7,6 +7,7 @@ import { FaGithub, FaGoogle } from "react-icons/fa";
 import AuthShell from "components/auth/AuthShell";
 import styles from "components/auth/auth.module.scss";
 import PasswordField from "components/auth/PasswordField";
+import { httpRequest } from "lib/httpClient";
 
 const signInFields = [
   {
@@ -51,7 +52,7 @@ const SignIn = () => {
     setError("");
 
     try {
-      const response = await fetch("/api/auth/password", {
+      const response = await httpRequest("/api/auth/password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

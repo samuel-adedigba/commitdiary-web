@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Button, Card, Col, Form, Image, Row } from "react-bootstrap";
 import { useAuth } from "lib/auth-context";
 import { getProfileAvatarUrl, getProfileCoverUrl } from "lib/profilePresentation";
+import { httpRequest } from "lib/httpClient";
 
 export default function GeneralSetting() {
   const { user, loading, refreshUser } = useAuth();
@@ -23,7 +24,7 @@ export default function GeneralSetting() {
     setSaving(true);
     setMessage("");
     try {
-      const response = await fetch("/api/auth/profile", {
+      const response = await httpRequest("/api/auth/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ full_name: fullName ?? metadata.full_name ?? "" }),
@@ -49,7 +50,7 @@ export default function GeneralSetting() {
     formData.append("file", file);
     setMessage("");
     try {
-      const response = await fetch("/api/auth/profile", { method: "POST", body: formData });
+      const response = await httpRequest("/api/auth/profile", { method: "POST", body: formData });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "We could not upload that image.");
       if (kind === "avatar") setAvatarUrl(payload.url);

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import AuthShell from "components/auth/AuthShell";
 import styles from "components/auth/auth.module.scss";
+import { httpRequest } from "lib/httpClient";
 
 const ForgetPassword = () => {
   const [email, setEmail] = useState("");
@@ -18,7 +19,7 @@ const ForgetPassword = () => {
     setError("");
 
     try {
-      const response = await fetch("/api/auth/recover", {
+      const response = await httpRequest("/api/auth/recover", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

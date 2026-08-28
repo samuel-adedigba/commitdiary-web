@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import { httpRequest } from './httpClient'
 
 interface AuthContextType {
     user: any | null
@@ -17,12 +18,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const refreshUser = async () => {
         try {
-            const response = await fetch('/api/auth/user', { cache: 'no-store' })
+            const response = await httpRequest('/api/auth/user', { cache: 'no-store' })
             if (!response.ok) {
                 setUser(null)
                 return
             }
-            const payload = await response.json()
+            const payload = await response.json<{ user?: unknown }>()
             setUser(payload.user ?? null)
         } catch {
             // Keep the current session state on transient refresh failures.
@@ -38,7 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [])
 
     const signOut = async () => {
-        await fetch('/api/auth/sign-out', { method: 'POST' })
+        await httpRequest('/api/auth/sign-out', { method: 'POST' })
         setUser(null)
     }
 

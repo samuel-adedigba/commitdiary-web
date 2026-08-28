@@ -1,12 +1,12 @@
 import Link from "next/link";
 import LandingFooter from "./LandingFooter";
 import LandingHeader from "./LandingHeader";
+import PricingSection from "./PricingSection";
 import ProductPreview from "./ProductPreview";
 import {
   faqs,
   featureGroups,
   personas,
-  pricingPlans,
   setupSteps,
   stepperCapabilities,
   templates,
@@ -437,34 +437,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="pricing" className={styles.accessSection} aria-labelledby="access-title">
-          <div className={styles.accessCopy}>
-            <p className={styles.eyebrow}>Start with your next commit</p>
-            <h2 id="access-title">The extension is the front door.</h2>
-            <p>
-              Install CommitDiary in VS Code, create your account, securely add your API key through the setup command, and let your work journal build from there.
-            </p>
-          </div>
-          <div className={styles.pricingGrid}>
-            {pricingPlans.map((plan) => (
-              <article key={plan.id} className={`${styles.pricingCard} ${plan.featured ? styles.pricingCardFeatured : ""}`}>
-                <div className={styles.pricingCardHeader}>
-                  <span>{plan.label}</span>
-                  <h3>{plan.name}</h3>
-                  <p>{plan.description}</p>
-                </div>
-                <div className={styles.price}><strong>{plan.price}</strong><span>{plan.cadence}</span></div>
-                <ul>
-                  {plan.features.map((feature) => <li key={feature}><span aria-hidden="true">✓</span>{feature}</li>)}
-                </ul>
-                <Link href={plan.href} className={plan.featured ? styles.primaryButton : styles.secondaryButton}>
-                  {plan.cta} <ArrowIcon />
-                </Link>
-              </article>
-            ))}
-          </div>
-          <p className={styles.pricingNote}>Paid plans are launch pricing and will open as hosted billing leaves beta. Start free locally today; no card is required.</p>
-        </section>
+        <PricingSection />
 
         <section className={styles.faqSection} aria-labelledby="faq-title">
           <SectionHeading

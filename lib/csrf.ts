@@ -4,6 +4,7 @@
  */
 
 import { NextRequest } from 'next/server'
+import { httpRequest } from './httpClient'
 
 /**
  * Validate CSRF token from request
@@ -52,7 +53,7 @@ export function validateCsrfToken(request: NextRequest): boolean {
  * @example
  * ```typescript
  * const csrfToken = getCsrfToken()
- * await fetch('/api/data', {
+ * await httpRequest('/api/data', {
  *   method: 'POST',
  *   headers: {
  *     'x-csrf-token': csrfToken,
@@ -78,12 +79,12 @@ export function getCsrfToken(): string | null {
 }
 
 /**
- * Add CSRF token to fetch options
+ * Add CSRF token to request options
  * Convenience wrapper for adding CSRF headers
  * 
  * @example
  * ```typescript
- * const response = await fetch('/api/data', withCsrfToken({
+ * const response = await httpRequest('/api/data', withCsrfToken({
  *   method: 'POST',
  *   body: JSON.stringify(data)
  * }))
@@ -125,7 +126,7 @@ export function withCsrfToken(options: RequestInit = {}): RequestInit {
  */
 export function useSecureFetch() {
   const secureFetch = async (url: string, options: RequestInit = {}) => {
-    return fetch(url, withCsrfToken(options))
+    return httpRequest(url, withCsrfToken(options))
   }
 
   return { secureFetch, getCsrfToken }
