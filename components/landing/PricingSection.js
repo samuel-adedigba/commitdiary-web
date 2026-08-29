@@ -82,6 +82,9 @@ export default function PricingSection() {
       <div className={styles.pricingGrid}>
         {catalog.plans.map((plan) => {
           const price = plan.prices?.[cadence];
+          const checkoutHref = price
+            ? `/checkout?plan_code=${encodeURIComponent(plan.code)}&cadence=${cadence}`
+            : "/#pricing";
           return (
             <article key={plan.code} className={`${styles.pricingCard} ${plan.featured ? styles.pricingCardFeatured : ""}`}>
               <div className={styles.pricingCardHeader}>
@@ -96,7 +99,7 @@ export default function PricingSection() {
               <ul>
                 {plan.display_features.map((feature) => <li key={feature}><span aria-hidden="true">✓</span>{feature}</li>)}
               </ul>
-              <Link href={plan.code === "local" ? "/install" : "/pricing"} className={plan.featured ? styles.primaryButton : styles.secondaryButton}>
+              <Link href={plan.code === "local" ? "/install" : checkoutHref} className={plan.featured ? styles.primaryButton : styles.secondaryButton} aria-disabled={plan.code !== "local" && !price}>
                 {plan.cta_label} <ArrowIcon />
               </Link>
               {plan.code !== "local" && !price && <small>This plan is not currently available for checkout.</small>}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   PKCE_VERIFIER_COOKIE,
   RECOVERY_FLOW_COOKIE,
+  AUTH_NEXT_COOKIE,
   SUPABASE_ANON_KEY,
   SUPABASE_URL,
   clearRecoveryCookies,
@@ -11,6 +12,7 @@ import {
   redirectWithAuthError,
   setSessionCookies,
 } from "../_utils";
+import { normalizeAuthRedirect } from "lib/authRedirect";
 
 export async function GET(request) {
   const code = request.nextUrl.searchParams.get("code");
@@ -57,7 +59,9 @@ export async function GET(request) {
   }
 
   const isRecovery = request.cookies.get(RECOVERY_FLOW_COOKIE)?.value === "1";
-  const destination = isRecovery ? "/authentication/reset-password" : "/dashboard";
+  const destination = isRecovery
+    ? "/authentication/reset-password"
+    : normalizeAuthRedirect(request.cookies.get(AUTH_NEXT_COOKIE)?.value);
   const response = NextResponse.redirect(new URL(destination, getSiteUrl(request)));
   setSessionCookies(response, session);
   clearRecoveryCookies(response);

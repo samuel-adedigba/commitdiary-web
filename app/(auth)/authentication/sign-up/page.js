@@ -2,11 +2,13 @@
 
 import { Button, Form } from "react-bootstrap";
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import AuthShell from "components/auth/AuthShell";
 import styles from "components/auth/auth.module.scss";
 import PasswordField from "components/auth/PasswordField";
 import { httpRequest } from "lib/httpClient";
+import { normalizeAuthRedirect } from "lib/authRedirect";
 
 const legalAcknowledgements = [
   { id: "termsAccepted", linkText: "Terms of Service", href: "/terms", prefix: "I agree to the" },
@@ -47,7 +49,7 @@ const signUpFields = [
   },
 ];
 
-const SignUp = () => {
+const SignUpContent = () => {
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -60,6 +62,8 @@ const SignUp = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
+  const searchParams = useSearchParams();
+  const next = normalizeAuthRedirect(searchParams.get("next"));
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
@@ -122,7 +126,7 @@ const SignUp = () => {
         return;
       }
 
-      window.location.assign("/dashboard");
+      window.location.assign(next);
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -145,7 +149,7 @@ const SignUp = () => {
           </p>
         </div>
         <p className={styles.switchPrompt}>
-          Already confirmed? <Link href="/authentication/sign-in">Sign in</Link>
+          Already confirmed? <Link href={`/authentication/sign-in?next=${encodeURIComponent(next)}`}>Sign in</Link>
         </p>
       </AuthShell>
     );
@@ -267,5 +271,11 @@ const SignUp = () => {
     </AuthShell>
   );
 };
+
+const SignUp = () => (
+  <Suspense fallback={<AuthShell page="signUp" />}>
+    <SignUpContent />
+  </Suspense>
+);
 
 export default SignUp;

@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import {
   PKCE_VERIFIER_COOKIE,
   RECOVERY_FLOW_COOKIE,
+  AUTH_NEXT_COOKIE,
   SUPABASE_ANON_KEY,
   SUPABASE_URL,
   createPkcePair,
   createCookieOptions,
   getSiteUrl,
 } from "../../_utils";
+import { normalizeAuthRedirect } from "lib/authRedirect";
 
 const ALLOWED_PROVIDERS = new Set(["github", "google"]);
 
@@ -32,6 +34,11 @@ export async function GET(request, { params }) {
 
   const response = NextResponse.redirect(authorizeUrl);
   response.cookies.set(PKCE_VERIFIER_COOKIE, verifier, createCookieOptions(60 * 10));
+  response.cookies.set(
+    AUTH_NEXT_COOKIE,
+    normalizeAuthRedirect(request.nextUrl.searchParams.get("next")),
+    createCookieOptions(60 * 10),
+  );
   response.cookies.set(RECOVERY_FLOW_COOKIE, "", { ...createCookieOptions(0), maxAge: 0 });
   return response;
 }

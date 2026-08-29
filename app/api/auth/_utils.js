@@ -11,6 +11,7 @@ export const REFRESH_COOKIE = "cd_sb_refresh_token";
 export const EXPIRES_COOKIE = "cd_sb_expires_at";
 export const PKCE_VERIFIER_COOKIE = "cd_pkce_verifier";
 export const RECOVERY_FLOW_COOKIE = "cd_recovery_flow";
+export const AUTH_NEXT_COOKIE = "cd_auth_next";
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -45,13 +46,14 @@ export function clearSessionCookies(response) {
     EXPIRES_COOKIE,
     PKCE_VERIFIER_COOKIE,
     RECOVERY_FLOW_COOKIE,
+    AUTH_NEXT_COOKIE,
   ]) {
     response.cookies.set(name, "", { ...createCookieOptions(0), maxAge: 0 });
   }
 }
 
 export function clearRecoveryCookies(response) {
-  for (const name of [PKCE_VERIFIER_COOKIE, RECOVERY_FLOW_COOKIE]) {
+  for (const name of [PKCE_VERIFIER_COOKIE, RECOVERY_FLOW_COOKIE, AUTH_NEXT_COOKIE]) {
     response.cookies.set(name, "", { ...createCookieOptions(0), maxAge: 0 });
   }
 }

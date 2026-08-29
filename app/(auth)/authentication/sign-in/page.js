@@ -2,12 +2,14 @@
 
 import { Button, Form } from "react-bootstrap";
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { FaGithub, FaGoogle } from "react-icons/fa";
 import AuthShell from "components/auth/AuthShell";
 import styles from "components/auth/auth.module.scss";
 import PasswordField from "components/auth/PasswordField";
 import { httpRequest } from "lib/httpClient";
+import { normalizeAuthRedirect } from "lib/authRedirect";
 
 const signInFields = [
   {
@@ -31,9 +33,11 @@ const oauthProviders = [
   { id: "google", label: "Google", Icon: FaGoogle },
 ];
 
-const SignIn = () => {
+const SignInContent = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const searchParams = useSearchParams();
+  const next = normalizeAuthRedirect(searchParams.get("next"));
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -71,7 +75,7 @@ const SignIn = () => {
       }
 
       // Reload the app so AuthProvider starts with the newly issued HttpOnly session cookies.
-      window.location.assign("/dashboard");
+      window.location.assign(next);
     } catch (err) {
       setError(
         err instanceof Error
@@ -85,7 +89,7 @@ const SignIn = () => {
   const handleOAuthSignIn = (provider) => {
     setLoading(true);
     setError("");
-    window.location.assign(`/api/auth/oauth/${provider}`);
+    window.location.assign(`/api/auth/oauth/${provider}?next=${encodeURIComponent(next)}`);
   };
 
   return (
@@ -168,10 +172,16 @@ const SignIn = () => {
 
       <p className={styles.switchPrompt}>
         New to CommitDiary?{" "}
-        <Link href="/authentication/sign-up">Create an account</Link>
+        <Link href={`/authentication/sign-up?next=${encodeURIComponent(next)}`}>Create an account</Link>
       </p>
     </AuthShell>
   );
 };
+
+const SignIn = () => (
+  <Suspense fallback={<AuthShell page="signIn" />}>
+    <SignInContent />
+  </Suspense>
+);
 
 export default SignIn;

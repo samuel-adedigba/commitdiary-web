@@ -139,12 +139,20 @@ export interface AdminOverview {
     users: { total: number; admins: number; new_last_30_days: number }
     commits: { total: number }
     reports: { created_last_30_days: number }
-    subscriptions: { active: number }
+    subscriptions: { active: number; past_due: number }
     payments: {
         transaction_count: number
+        all_transaction_count: number
         gross_amount_minor: string
         refunded_amount_minor: string
         disputed_amount_minor: string
+        net_amount_minor: string
+        by_status: Record<string, number>
+    }
+    billing: {
+        checkout_requests: { total: number; by_status: Record<string, number> }
+        webhooks: { total: number; pending: number; failed: number; retryable: number; exhausted: number; processed: number }
+        adjustments: { total: number; approved_refunds: number; active_disputes: number }
     }
     generated_at: string
 }
@@ -173,7 +181,9 @@ export interface AdminPayment {
     provider_transaction_id: string
     provider: string
     status: string
-    currency_code: string
+    provider_status: string
+    provider_subscription_id: string | null
+    currency_code: string | null
     amount_minor: string | null
     refunded_amount_minor: string
     disputed_amount_minor: string
@@ -181,6 +191,28 @@ export interface AdminPayment {
     provider_updated_at: string | null
     created_at: string
     user: { id: string; email: string | null } | null
+    adjustments: Array<{
+        provider_adjustment_id: string
+        provider_subscription_id: string | null
+        action: string
+        adjustment_type: string | null
+        status: string
+        currency_code: string | null
+        amount_minor: string | null
+        provider_updated_at: string | null
+        created_at: string
+    }>
+    checkout_attempts: Array<{
+        plan_code: string
+        cadence: string
+        status: string
+        error_code: string | null
+        reconciliation_attempts: number
+        next_reconciliation_at: string | null
+        reconciliation_error: string | null
+        created_at: string
+        updated_at: string
+    }>
 }
 
 export interface AdminActivityItem {
@@ -209,15 +241,20 @@ export interface AdminListParams {
     to?: string
 }
 
-async function getAdminResource<T>(path: string): Promise<T> {
+async function requestAdminResource<T>(path: string, options: { method?: string } = {}): Promise<T> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
     const response = await httpRequest(`${API_URL}${path}`, {
+        method: options.method,
         headers: { 'Authorization': `Bearer ${token}` },
         cache: 'no-store'
     })
     if (!response.ok) throw await getApiError(response, 'Could not load admin data')
     return response.json<T>()
+}
+
+async function getAdminResource<T>(path: string): Promise<T> {
+    return requestAdminResource<T>(path)
 }
 
 function adminQuery(params?: AdminListParams): string {
@@ -236,6 +273,7 @@ export const getAdminOverview = (): Promise<AdminOverview> => getAdminResource('
 export const getAdminUsers = (params?: AdminListParams): Promise<AdminPage<AdminUser>> => getAdminResource(`/v1/admin/users${adminQuery(params)}`)
 export const getAdminPayments = (params?: AdminListParams): Promise<AdminPage<AdminPayment>> => getAdminResource(`/v1/admin/payments${adminQuery(params)}`)
 export const getAdminActivity = (params?: AdminListParams): Promise<AdminPage<AdminActivityItem>> => getAdminResource(`/v1/admin/activity${adminQuery(params)}`)
+export const retryAdminBillingWebhook = (providerEventId: string): Promise<{ duplicate?: boolean; processed?: boolean; status?: string }> => requestAdminResource(`/v1/admin/billing/webhooks/${encodeURIComponent(providerEventId)}/retry`, { method: 'POST' })
 
 async function getAuthToken(): Promise<string | null> {
     const user = await getCachedUser()
@@ -1032,6 +1070,7 @@ export const apiClient = {
     getAdminUsers,
     getAdminPayments,
     getAdminActivity,
+    retryAdminBillingWebhook,
 }
 
 /**

@@ -17,10 +17,12 @@ function formatMinorAmount(value, currency = "USD") {
   const amount = Number(value);
   const normalizedCurrency = String(currency || "USD").toUpperCase();
   if (!Number.isSafeInteger(amount)) return `${normalizedCurrency} ${value}`;
+  const zeroDecimalCurrencies = new Set(["BIF", "CLP", "DJF", "GNF", "JPY", "KMF", "KRW", "MGA", "PYG", "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF"]);
+  const divisor = zeroDecimalCurrencies.has(normalizedCurrency) ? 1 : 100;
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency: normalizedCurrency }).format(amount / 100);
+    return new Intl.NumberFormat(undefined, { style: "currency", currency: normalizedCurrency }).format(amount / divisor);
   } catch {
-    return `${normalizedCurrency} ${(amount / 100).toFixed(2)}`;
+    return `${normalizedCurrency} ${(amount / divisor).toFixed(divisor === 1 ? 0 : 2)}`;
   }
 }
 
@@ -49,6 +51,7 @@ export default function AdminPage() {
   const [loadingMoreActivity, setLoadingMoreActivity] = useState(false);
   const [loadingMoreUsers, setLoadingMoreUsers] = useState(false);
   const [loadingMorePayments, setLoadingMorePayments] = useState(false);
+  const [retryingWebhookId, setRetryingWebhookId] = useState("");
   const [error, setError] = useState("");
 
   const loadAdminData = useCallback(async () => {
@@ -121,6 +124,28 @@ export default function AdminPage() {
     }
   };
 
+  const retryWebhook = async (providerEventId) => {
+    if (!providerEventId || retryingWebhookId) return;
+    setRetryingWebhookId(providerEventId);
+    setError("");
+    try {
+      await apiClient.retryAdminBillingWebhook(providerEventId);
+      setData((current) => current ? {
+        ...current,
+        activity: {
+          ...current.activity,
+          items: current.activity.items.map((item) => item.id === `billing_webhook:${providerEventId}`
+            ? { ...item, details: { ...item.details, processed: true, processing_error: null } }
+            : item),
+        },
+      } : current);
+    } catch (requestError) {
+      setError(requestError?.message || "We could not retry the billing webhook.");
+    } finally {
+      setRetryingWebhookId("");
+    }
+  };
+
   useEffect(() => {
     loadAdminData();
   }, [loadAdminData]);
@@ -165,9 +190,10 @@ export default function AdminPage() {
         {stats.map((stat) => <MetricCard key={stat.title} {...stat} />)}
         <Col xl={6} md={6} className="mb-4">
           <Card className="h-100"><Card.Body>
-            <p className="text-muted mb-1">Payment volume</p>
+            <p className="text-muted mb-1">Captured payment volume</p>
             <h2 className="mb-1">{formatMinorAmount(overview?.payments.gross_amount_minor ?? "0")}</h2>
-            <small className="text-muted">{overview?.payments.transaction_count ?? 0} transactions</small>
+            <small className="text-muted">{overview?.payments.transaction_count ?? 0} captured · {overview?.payments.all_transaction_count ?? 0} recorded</small>
+            <small className="d-block text-muted">Net after refunds/disputes: {formatMinorAmount(overview?.payments.net_amount_minor ?? "0")}</small>
           </Card.Body></Card>
         </Col>
         <Col xl={6} md={6} className="mb-4">
@@ -177,6 +203,12 @@ export default function AdminPage() {
             <small className="text-muted">Updated {formatDate(overview?.generated_at)}</small>
           </Card.Body></Card>
         </Col>
+      </Row>
+
+      <Row>
+        <Col xl={4} md={6} className="mb-4"><Card className="h-100"><Card.Body><p className="text-muted mb-1">Checkout attempts</p><h2>{overview?.billing?.checkout_requests?.total ?? 0}</h2><small className="text-muted">Completed: {overview?.billing?.checkout_requests?.by_status?.completed ?? 0} · Pending: {overview?.billing?.checkout_requests?.by_status?.pending ?? 0} · Failed: {overview?.billing?.checkout_requests?.by_status?.failed ?? 0}</small></Card.Body></Card></Col>
+        <Col xl={4} md={6} className="mb-4"><Card className="h-100"><Card.Body><p className="text-muted mb-1">Webhook processing</p><h2>{overview?.billing?.webhooks?.total ?? 0}</h2><small className="text-muted">Processed: {overview?.billing?.webhooks?.processed ?? 0} · Pending: {overview?.billing?.webhooks?.pending ?? 0} · Failed: {overview?.billing?.webhooks?.failed ?? 0}</small><small className="d-block text-muted">Retryable: {overview?.billing?.webhooks?.retryable ?? 0} · Exhausted: {overview?.billing?.webhooks?.exhausted ?? 0}</small></Card.Body></Card></Col>
+        <Col xl={4} md={12} className="mb-4"><Card className="h-100"><Card.Body><p className="text-muted mb-1">Refunds and disputes</p><h2>{overview?.billing?.adjustments?.total ?? 0}</h2><small className="text-muted">Approved refunds: {overview?.billing?.adjustments?.approved_refunds ?? 0} · Active disputes: {overview?.billing?.adjustments?.active_disputes ?? 0}</small></Card.Body></Card></Col>
       </Row>
 
       <Row>
@@ -192,7 +224,10 @@ export default function AdminPage() {
                     <td><Badge bg="light" text="dark" className="me-2">{item.source}</Badge>{item.action}</td>
                     <td>{item.user?.email || item.actor?.email || "System"}</td>
                     <td>{formatDate(item.occurred_at)}</td>
-                    <td>{item.details && Object.keys(item.details).length ? <details><summary>View details</summary><pre className="small text-break mt-2 mb-0">{JSON.stringify(item.details, null, 2)}</pre></details> : "—"}</td>
+                    <td>
+                      {item.details && Object.keys(item.details).length ? <details><summary>View details</summary><pre className="small text-break mt-2 mb-0">{JSON.stringify(item.details, null, 2)}</pre></details> : "—"}
+                      {item.source === "billing_webhook" && item.details?.processed === false && item.details?.provider_event_id && <Button size="sm" variant="outline-danger" className="mt-2" onClick={() => retryWebhook(item.details.provider_event_id)} disabled={Boolean(retryingWebhookId)}>{retryingWebhookId === item.details.provider_event_id ? "Retrying…" : "Retry webhook"}</Button>}
+                    </td>
                   </tr>
                 ))}
                 {!loading && !(data?.activity.items?.length) && <tr><td colSpan="4" className="text-muted">No activity found.</td></tr>}
@@ -236,12 +271,21 @@ export default function AdminPage() {
         <Card.Header><h2 className="h4 mb-0">Payment transactions</h2></Card.Header>
         <Table responsive hover className="mb-0">
           <caption className="visually-hidden">Recent payment transactions</caption>
-          <thead><tr><th scope="col">Transaction</th><th scope="col">User</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Date</th></tr></thead>
+          <thead><tr><th scope="col">Transaction</th><th scope="col">User</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Refunded</th><th scope="col">Disputed</th><th scope="col">Aftermath</th><th scope="col">Date</th></tr></thead>
           <tbody>
             {(data?.payments.items ?? []).map((item) => (
-              <tr key={item.provider_transaction_id}><td>{item.provider_transaction_id}</td><td>{item.user?.email || "—"}</td><td>{formatMinorAmount(item.amount_minor, item.currency_code)}</td><td>{item.status}</td><td>{formatDate(item.provider_created_at || item.created_at)}</td></tr>
+              <tr key={item.provider_transaction_id}>
+                <td>{item.provider_transaction_id}<small className="d-block text-muted">Provider: {item.provider_status}</small></td>
+                <td>{item.user?.email || "—"}</td>
+                <td>{formatMinorAmount(item.amount_minor, item.currency_code)}</td>
+                <td>{item.status}</td>
+                <td>{formatMinorAmount(item.refunded_amount_minor, item.currency_code)}</td>
+                <td>{formatMinorAmount(item.disputed_amount_minor, item.currency_code)}</td>
+                <td>{item.adjustments?.length || item.checkout_attempts?.length ? <details><summary>View</summary><div className="small mt-2">{item.checkout_attempts?.map((attempt) => <div key={`${attempt.plan_code}-${attempt.created_at}`}>Checkout: {attempt.plan_code} · {attempt.cadence} · {attempt.status}{attempt.reconciliation_error ? ` · ${attempt.reconciliation_error}` : ""}{attempt.reconciliation_attempts ? ` · reconciliation attempts: ${attempt.reconciliation_attempts}` : ""}</div>)}{item.adjustments?.map((adjustment) => <div key={adjustment.provider_adjustment_id}>{adjustment.action} · {adjustment.status} · {formatMinorAmount(adjustment.amount_minor, adjustment.currency_code || item.currency_code)}</div>)}</div></details> : "—"}</td>
+                <td>{formatDate(item.provider_created_at || item.created_at)}</td>
+              </tr>
             ))}
-            {!loading && !(data?.payments.items?.length) && <tr><td colSpan="5" className="text-muted">No payment transactions found.</td></tr>}
+            {!loading && !(data?.payments.items?.length) && <tr><td colSpan="8" className="text-muted">No payment transactions found.</td></tr>}
           </tbody>
         </Table>
         {data?.payments.pagination.has_more && <Card.Footer className="text-center"><Button variant="link" onClick={loadMorePayments} disabled={loadingMorePayments}>{loadingMorePayments ? "Loading…" : "Load more payments"}</Button></Card.Footer>}
