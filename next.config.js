@@ -9,15 +9,15 @@ const createSecurityHeaders = ({ allowEmbedding = false } = {}) => [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // unsafe-inline needed for Next.js, consider removing in strict mode
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.paddle.com", // unsafe-inline needed for Next.js, consider removing in strict mode
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com", // Allow known external stylesheets used in theme.scss
       "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
       "img-src 'self' data: https: http:", // Allow images from any source (including GitHub avatars)
       "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com",
       // Allow API calls to Supabase and your API server (http/https + WebSocket)
       isDevelopment
-        ? "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in http://localhost:* ws://localhost:*"
-        : "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in",
+        ? "connect-src 'self' https://*.supabase.co https://*.supabase.in https://*.paddle.com wss://*.supabase.co wss://*.supabase.in http://localhost:* ws://localhost:*"
+        : "connect-src 'self' https://*.supabase.co https://*.supabase.in https://*.paddle.com wss://*.supabase.co wss://*.supabase.in",
       allowEmbedding ? "frame-ancestors https: http:" : "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

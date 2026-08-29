@@ -14,4 +14,4 @@ Paid hosted plans can add authenticated cloud sync, hosted history, engineering 
 
 https://commitdiary.dev/#pricing
 
-The catalog is the source of truth. Final currency, tax, and checkout details are shown by Paddle when checkout is available. Do not infer a paid plan’s current availability from this static document.
+The catalog is the source of truth. Where supported, the website uses Paddle pricing preview to show a visitor's localized currency. Final currency, tax, renewal, and checkout details are shown by Paddle. Do not infer a paid plan’s current availability from this static document.

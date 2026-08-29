@@ -6,6 +6,7 @@ import { FiArrowUpRight, FiCreditCard } from "react-icons/fi";
 import { createCheckout, createBillingPortal } from "../../lib/apiClient";
 import { useEntitlements } from "../../hooks/useEntitlements";
 import { useBillingCatalog } from "../../hooks/useBillingCatalog";
+import { useLocalizedBillingPrices } from "../../hooks/useLocalizedBillingPrices";
 
 type BillingIconProps = { size?: number; "aria-hidden"?: boolean };
 const ArrowUpRightIcon = FiArrowUpRight as ComponentType<BillingIconProps>;
@@ -24,6 +25,7 @@ export default function BillingSettings() {
   const [error, setError] = useState<string|null>(null);
   const [actionLoading, setActionLoading] = useState<string|null>(null);
   const [cadence, setCadence] = useState<BillingCadence>("monthly");
+  const { localizedPrices } = useLocalizedBillingPrices(catalog, cadence);
 
   useEffect(() => {
     const refreshWhenVisible = () => {
@@ -106,8 +108,9 @@ export default function BillingSettings() {
           {!isActive && isCatalogLoading && <small className="text-muted align-self-center">Loading current plans…</small>}
           {!isActive && !isCatalogLoading && planOptions.map((plan, index) => {
             const price = plan.prices?.[cadence];
+            const displayedPrice = price?.price_id ? localizedPrices[price.price_id] || price.formatted_total : price?.formatted_total;
             const variant = index === 0 ? "primary" : index === 1 ? "outline-primary" : "outline-secondary";
-            return <Button key={plan.code} variant={variant} disabled={!!actionLoading || !price} onClick={() => handleCheckout(plan.code, cadence)}>{actionLoading === plan.code ? 'Starting checkout…' : `Get ${plan.name} ${price?.formatted_total || 'unavailable'}${price ? cadence === "annual" ? '/year' : '/month' : ''}`}</Button>;
+            return <Button key={plan.code} variant={variant} disabled={!!actionLoading || !price} onClick={() => handleCheckout(plan.code, cadence)}>{actionLoading === plan.code ? 'Starting checkout…' : `Get ${plan.name} ${displayedPrice || 'unavailable'}${price ? cadence === "annual" ? '/year' : '/month' : ''}`}</Button>;
           })}
           {!isActive && !isCatalogLoading && planOptions.length === 0 && <small className="text-danger">No paid plans are currently available.</small>}
           {isActive && <Button variant="outline-primary" disabled={!!actionLoading} onClick={handlePortal}>{actionLoading==='portal'?'...':'Manage billing'}</Button>}

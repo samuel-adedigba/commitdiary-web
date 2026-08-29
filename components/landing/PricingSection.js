@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useBillingCatalog } from "../../hooks/useBillingCatalog";
+import { useLocalizedBillingPrices } from "../../hooks/useLocalizedBillingPrices";
 import styles from "./landing.module.scss";
 
 function ArrowIcon() {
   return <span aria-hidden="true">↗</span>;
 }
 
-function planPrice(plan, cadence) {
+function planPrice(plan, cadence, localizedPrices) {
   const price = plan.prices?.[cadence];
+  if (price?.price_id && localizedPrices[price.price_id]) return localizedPrices[price.price_id];
   if (price?.formatted_total) return price.formatted_total;
   if (plan.code === "local") return "$0";
   return "Price unavailable";
@@ -24,6 +26,7 @@ function planCadence(plan, cadence) {
 export default function PricingSection() {
   const { catalog, error, isLoading, refresh } = useBillingCatalog();
   const [cadence, setCadence] = useState("monthly");
+  const { localizedPrices } = useLocalizedBillingPrices(catalog, cadence);
 
   if (isLoading && !catalog) {
     return (
@@ -87,7 +90,7 @@ export default function PricingSection() {
                 <p>{plan.description}</p>
               </div>
               <div className={styles.price}>
-                <strong>{planPrice(plan, cadence)}</strong>
+                <strong>{planPrice(plan, cadence, localizedPrices)}</strong>
                 <span>{planCadence(plan, cadence)}</span>
               </div>
               <ul>
@@ -102,7 +105,7 @@ export default function PricingSection() {
         })}
       </div>
       <p className={styles.pricingNote}>
-        Paid plans are billed through Paddle. Final currency, tax, renewal, and total details are shown during checkout. <Link href="/terms">Terms</Link> · <Link href="/refunds">Refund policy</Link>.
+        Paid plans are billed through Paddle. Prices are localized where supported; final currency, tax, renewal, and total details are shown during checkout. <Link href="/terms">Terms</Link> · <Link href="/refunds">Refund policy</Link>.
       </p>
     </section>
   );

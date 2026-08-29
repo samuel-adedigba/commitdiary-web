@@ -181,7 +181,15 @@ pnpm dlx vercel env add NEXT_PUBLIC_GITHUB_URL production --cwd packages/web-das
 pnpm dlx vercel env add NEXT_PUBLIC_MARKETPLACE_URL production --cwd packages/web-dashboard
 pnpm dlx vercel env add NEXT_PUBLIC_DOCS_URL production --cwd packages/web-dashboard
 pnpm dlx vercel env add NEXT_PUBLIC_DISCORD_DOCS_URL production --cwd packages/web-dashboard
+pnpm dlx vercel env add NEXT_PUBLIC_PADDLE_CLIENT_TOKEN production --cwd packages/web-dashboard
+pnpm dlx vercel env add NEXT_PUBLIC_PADDLE_ENVIRONMENT production --cwd packages/web-dashboard
 ```
+
+Use a `test_` Paddle client-side token with `sandbox` while validating localized
+pricing. Create and configure a separate `live_` token with `production` only
+after Paddle approves the live domain. The client-side token is safe for the
+browser; keep `PADDLE_API_KEY` and `PADDLE_WEBHOOK_SECRET` in the API secret
+store only.
 
 Attach both production domains to the same linked Vercel project, replacing `<project-name>` with the
 project selected during `vercel link`:
