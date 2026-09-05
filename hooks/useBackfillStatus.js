@@ -16,18 +16,23 @@ export function useBackfillStatus({
 }) {
   const attemptsRef = useRef(new Map());
   const errorAttemptsRef = useRef(new Map());
+  const terminalReposRef = useRef(new Set());
+  const pollInFlightRef = useRef(false);
 
   useEffect(() => {
     if (!enabled || !repoIds || repoIds.length === 0) {
+      if (!enabled) terminalReposRef.current.clear();
       return;
     }
 
-    const interval = setInterval(async () => {
+    const poll = async () => {
       for (const repoId of repoIds) {
+        if (terminalReposRef.current.has(repoId)) continue;
         const attempts = attemptsRef.current.get(repoId) || 0;
         if (attempts >= MAX_ATTEMPTS) {
           attemptsRef.current.delete(repoId);
           errorAttemptsRef.current.delete(repoId);
+          terminalReposRef.current.add(repoId);
           onTerminalState?.(repoId, { reason: "max_attempts" });
           continue;
         }
@@ -49,6 +54,7 @@ export function useBackfillStatus({
           ) {
             attemptsRef.current.delete(repoId);
             errorAttemptsRef.current.delete(repoId);
+            terminalReposRef.current.add(repoId);
             onTerminalState?.(repoId, { status });
           }
         } catch (_error) {
@@ -57,12 +63,24 @@ export function useBackfillStatus({
           if (errorAttempts >= MAX_ERROR_ATTEMPTS) {
             attemptsRef.current.delete(repoId);
             errorAttemptsRef.current.delete(repoId);
+            terminalReposRef.current.add(repoId);
             onTerminalState?.(repoId, { reason: "error_attempts" });
           }
         }
       }
+
+    };
+
+    const interval = setInterval(() => {
+      if (pollInFlightRef.current) return;
+      pollInFlightRef.current = true;
+      void poll().finally(() => {
+        pollInFlightRef.current = false;
+      });
     }, intervalMs);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
   }, [enabled, intervalMs, onBackfillUpdate, onTerminalState, repoIds]);
 }

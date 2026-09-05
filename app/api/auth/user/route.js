@@ -5,6 +5,7 @@ import {
   SUPABASE_URL,
   clearSessionCookies,
   fetchAuthProvider,
+  publicUserMetadata,
 } from "../_utils";
 
 export async function GET(request) {
@@ -31,8 +32,7 @@ export async function GET(request) {
         user: {
           id: user.id,
           email: user.email,
-          app_metadata: user.app_metadata || {},
-          user_metadata: user.user_metadata || {},
+          user_metadata: publicUserMetadata(user.user_metadata),
         },
       });
     }

@@ -17,7 +17,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_PATTERN = /^[a-z0-9](?:[a-z0-9_-]{1,28}[a-z0-9])$/;
 
 export async function POST(request) {
-  const rateLimitResponse = enforceAuthRateLimit(request, "sign-up", 5, 60 * 60 * 1000);
+  const rateLimitResponse = await enforceAuthRateLimit(request, "sign-up", 5, 60 * 60 * 1000);
   if (rateLimitResponse) return rateLimitResponse;
 
   const body = await request.json().catch(() => ({}));

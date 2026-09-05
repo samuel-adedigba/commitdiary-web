@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Alert, Badge, Button, Card, Col, Container, Row, Spinner, Table } from "react-bootstrap";
 import { Activity, CreditCard, GitCommit, RefreshCw, Shield, Users } from "react-feather";
 import { apiClient } from "lib/apiClient";
 import { useAuth } from "lib/auth-context";
+import { useApiResource } from "hooks/useApiResource";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -24,6 +26,18 @@ function formatMinorAmount(value, currency = "USD") {
   } catch {
     return `${normalizedCurrency} ${(amount / divisor).toFixed(divisor === 1 ? 0 : 2)}`;
   }
+}
+
+function renderDetails(details) {
+  if (!details || typeof details !== "object") return "—";
+  const safeKeys = new Set([
+    "provider", "provider_status", "status", "plan_code", "cadence", "currency_code",
+    "amount_minor", "refunded_amount_minor", "disputed_amount_minor", "error_code",
+    "processing_attempts", "next_attempt_at", "reconciliation_attempts", "reconciliation_error",
+  ]);
+  const entries = Object.entries(details).filter(([key]) => safeKeys.has(key));
+  if (!entries.length) return "—";
+  return entries.map(([key, value]) => `${key.replaceAll("_", " ")}: ${String(value ?? "—")}`).join(" · ");
 }
 
 function MetricCard({ title, value, icon: Icon, variant = "primary" }) {
@@ -46,47 +60,54 @@ function MetricCard({ title, value, icon: Icon, variant = "primary" }) {
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const search = searchParams.get("search") || "";
+  const [searchInput, setSearchInput] = useState(search);
+  const [additional, setAdditional] = useState({
+    users: { items: [], pagination: null },
+    payments: { items: [], pagination: null },
+    activity: { items: [], pagination: null },
+  });
   const [loadingMoreActivity, setLoadingMoreActivity] = useState(false);
   const [loadingMoreUsers, setLoadingMoreUsers] = useState(false);
   const [loadingMorePayments, setLoadingMorePayments] = useState(false);
   const [retryingWebhookId, setRetryingWebhookId] = useState("");
-  const [error, setError] = useState("");
-
-  const loadAdminData = useCallback(async () => {
-    if (user?.role !== "admin") return;
-    setLoading(true);
-    setError("");
-    try {
-      const [overview, users, payments, activity] = await Promise.all([
-        apiClient.getAdminOverview(),
-        apiClient.getAdminUsers({ limit: 8 }),
-        apiClient.getAdminPayments({ limit: 8 }),
-        apiClient.getAdminActivity({ limit: 12 }),
-      ]);
-      setData({ overview, users, payments, activity });
-    } catch (requestError) {
-      setError(requestError?.message || "We could not load the admin dashboard. Try again.");
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.role]);
+  const [localError, setLocalError] = useState("");
+  const resource = useApiResource(`admin-dashboard:${user?.role || "unknown"}:${search}`, async () => {
+    if (user?.role !== "admin") return null;
+    const [overview, alerts, users, payments, activity] = await Promise.all([
+      apiClient.getAdminOverview(),
+      apiClient.getAdminAlerts(),
+      apiClient.getAdminUsers({ limit: 8, search: search || undefined }),
+      apiClient.getAdminPayments({ limit: 8 }),
+      apiClient.getAdminActivity({ limit: 12 }),
+    ]);
+    return { overview, alerts, users, payments, activity };
+  });
+  const baseData = user?.role === "admin" ? resource.data : null;
+  const data = baseData && {
+    ...baseData,
+    users: { items: [...baseData.users.items, ...additional.users.items], pagination: additional.users.pagination || baseData.users.pagination },
+    payments: { items: [...baseData.payments.items, ...additional.payments.items], pagination: additional.payments.pagination || baseData.payments.pagination },
+    activity: { items: [...baseData.activity.items, ...additional.activity.items], pagination: additional.activity.pagination || baseData.activity.pagination },
+  };
+  const loading = user?.role === "admin" && (resource.isLoading || resource.isRefreshing);
+  const error = localError || resource.error?.message || "";
+  const loadAdminData = async () => {
+    setLocalError("");
+    setAdditional({ users: { items: [], pagination: null }, payments: { items: [], pagination: null }, activity: { items: [], pagination: null } });
+    await resource.refresh().catch(() => undefined);
+  };
 
   const loadMoreActivity = async () => {
     if (!data?.activity.pagination.has_more || loadingMoreActivity) return;
     setLoadingMoreActivity(true);
     try {
       const nextPage = await apiClient.getAdminActivity({ limit: 12, offset: data.activity.items.length });
-      setData((current) => current ? {
-        ...current,
-        activity: {
-          items: [...current.activity.items, ...nextPage.items],
-          pagination: nextPage.pagination,
-        },
-      } : current);
+      setAdditional((current) => ({ ...current, activity: { items: [...current.activity.items, ...nextPage.items], pagination: nextPage.pagination } }));
     } catch (requestError) {
-      setError(requestError?.message || "We could not load more activity.");
+      setLocalError(requestError?.message || "We could not load more activity.");
     } finally {
       setLoadingMoreActivity(false);
     }
@@ -97,12 +118,9 @@ export default function AdminPage() {
     setLoadingMoreUsers(true);
     try {
       const nextPage = await apiClient.getAdminUsers({ limit: 8, offset: data.users.items.length });
-      setData((current) => current ? {
-        ...current,
-        users: { items: [...current.users.items, ...nextPage.items], pagination: nextPage.pagination },
-      } : current);
+      setAdditional((current) => ({ ...current, users: { items: [...current.users.items, ...nextPage.items], pagination: nextPage.pagination } }));
     } catch (requestError) {
-      setError(requestError?.message || "We could not load more users.");
+      setLocalError(requestError?.message || "We could not load more users.");
     } finally {
       setLoadingMoreUsers(false);
     }
@@ -113,12 +131,9 @@ export default function AdminPage() {
     setLoadingMorePayments(true);
     try {
       const nextPage = await apiClient.getAdminPayments({ limit: 8, offset: data.payments.items.length });
-      setData((current) => current ? {
-        ...current,
-        payments: { items: [...current.payments.items, ...nextPage.items], pagination: nextPage.pagination },
-      } : current);
+      setAdditional((current) => ({ ...current, payments: { items: [...current.payments.items, ...nextPage.items], pagination: nextPage.pagination } }));
     } catch (requestError) {
-      setError(requestError?.message || "We could not load more payments.");
+      setLocalError(requestError?.message || "We could not load more payments.");
     } finally {
       setLoadingMorePayments(false);
     }
@@ -127,28 +142,16 @@ export default function AdminPage() {
   const retryWebhook = async (providerEventId) => {
     if (!providerEventId || retryingWebhookId) return;
     setRetryingWebhookId(providerEventId);
-    setError("");
+    setLocalError("");
     try {
       await apiClient.retryAdminBillingWebhook(providerEventId);
-      setData((current) => current ? {
-        ...current,
-        activity: {
-          ...current.activity,
-          items: current.activity.items.map((item) => item.id === `billing_webhook:${providerEventId}`
-            ? { ...item, details: { ...item.details, processed: true, processing_error: null } }
-            : item),
-        },
-      } : current);
+      await loadAdminData();
     } catch (requestError) {
-      setError(requestError?.message || "We could not retry the billing webhook.");
+      setLocalError(requestError?.message || "We could not retry the billing webhook.");
     } finally {
       setRetryingWebhookId("");
     }
   };
-
-  useEffect(() => {
-    loadAdminData();
-  }, [loadAdminData]);
 
   if (authLoading) {
     return <Container fluid className="p-6 text-center"><Spinner animation="border" role="status"><span className="visually-hidden">Loading your access…</span></Spinner></Container>;
@@ -162,6 +165,14 @@ export default function AdminPage() {
       </Container>
     );
   }
+
+  const applySearch = (event) => {
+    event.preventDefault();
+    const params = new URLSearchParams(searchParams.toString());
+    if (searchInput.trim()) params.set("search", searchInput.trim());
+    else params.delete("search");
+    router.replace(`?${params.toString()}`);
+  };
 
   const overview = data?.overview;
   const stats = [
@@ -186,14 +197,30 @@ export default function AdminPage() {
 
       {error && <Alert variant="danger" role="alert">{error}</Alert>}
 
+      <form className="d-flex flex-wrap gap-2 mb-4" onSubmit={applySearch} role="search" aria-label="Search admin users">
+        <label className="visually-hidden" htmlFor="admin-user-search">Search users</label>
+        <input id="admin-user-search" className="form-control" style={{ maxWidth: "28rem" }} value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Search by email, username, or ID" />
+        <Button type="submit" variant="outline-secondary">Search</Button>
+        {search && <Button type="button" variant="link" onClick={() => { setSearchInput(""); router.replace("?"); }}>Clear</Button>}
+      </form>
+
       <Row>
         {stats.map((stat) => <MetricCard key={stat.title} {...stat} />)}
         <Col xl={6} md={6} className="mb-4">
           <Card className="h-100"><Card.Body>
             <p className="text-muted mb-1">Captured payment volume</p>
-            <h2 className="mb-1">{formatMinorAmount(overview?.payments.gross_amount_minor ?? "0")}</h2>
-            <small className="text-muted">{overview?.payments.transaction_count ?? 0} captured · {overview?.payments.all_transaction_count ?? 0} recorded</small>
-            <small className="d-block text-muted">Net after refunds/disputes: {formatMinorAmount(overview?.payments.net_amount_minor ?? "0")}</small>
+            {overview?.payments?.by_currency?.length > 1 ? overview.payments.by_currency.map((total) => (
+              <div key={total.currency_code} className="mb-2">
+                <h2 className="mb-0">{formatMinorAmount(total.gross_amount_minor, total.currency_code)}</h2>
+                <small className="text-muted">Net: {formatMinorAmount(total.net_amount_minor, total.currency_code)} · {total.transaction_count} captured</small>
+              </div>
+            )) : (
+              <>
+                <h2 className="mb-1">{overview?.payments?.gross_amount_minor === null ? "No captured payments" : formatMinorAmount(overview?.payments?.gross_amount_minor ?? "0", overview?.payments?.currency_code || "USD")}</h2>
+                <small className="text-muted">{overview?.payments?.transaction_count ?? 0} captured · {overview?.payments?.all_transaction_count ?? 0} recorded</small>
+                <small className="d-block text-muted">Net after refunds/disputes: {formatMinorAmount(overview?.payments?.net_amount_minor ?? "0", overview?.payments?.currency_code || "USD")}</small>
+              </>
+            )}
           </Card.Body></Card>
         </Col>
         <Col xl={6} md={6} className="mb-4">
@@ -204,6 +231,11 @@ export default function AdminPage() {
           </Card.Body></Card>
         </Col>
       </Row>
+
+      {data?.alerts?.alerts?.length ? <Alert variant="warning" role="status">
+        <strong>Operator attention</strong>
+        <ul className="mb-0 mt-2">{data.alerts.alerts.map((item) => <li key={item.code}>{item.message} ({item.count})</li>)}</ul>
+      </Alert> : null}
 
       <Row>
         <Col xl={4} md={6} className="mb-4"><Card className="h-100"><Card.Body><p className="text-muted mb-1">Checkout attempts</p><h2>{overview?.billing?.checkout_requests?.total ?? 0}</h2><small className="text-muted">Completed: {overview?.billing?.checkout_requests?.by_status?.completed ?? 0} · Pending: {overview?.billing?.checkout_requests?.by_status?.pending ?? 0} · Failed: {overview?.billing?.checkout_requests?.by_status?.failed ?? 0}</small></Card.Body></Card></Col>
@@ -225,7 +257,7 @@ export default function AdminPage() {
                     <td>{item.user?.email || item.actor?.email || "System"}</td>
                     <td>{formatDate(item.occurred_at)}</td>
                     <td>
-                      {item.details && Object.keys(item.details).length ? <details><summary>View details</summary><pre className="small text-break mt-2 mb-0">{JSON.stringify(item.details, null, 2)}</pre></details> : "—"}
+                      {item.details && Object.keys(item.details).length ? <details><summary>View details</summary><p className="small text-break mt-2 mb-0">{renderDetails(item.details)}</p></details> : "—"}
                       {item.source === "billing_webhook" && item.details?.processed === false && item.details?.provider_event_id && <Button size="sm" variant="outline-danger" className="mt-2" onClick={() => retryWebhook(item.details.provider_event_id)} disabled={Boolean(retryingWebhookId)}>{retryingWebhookId === item.details.provider_event_id ? "Retrying…" : "Retry webhook"}</Button>}
                     </td>
                   </tr>

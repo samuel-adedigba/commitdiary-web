@@ -54,8 +54,10 @@ export function useReportStatus(commitId?: number, enabled = false): UseReportSt
   const [error, setError] = useState<string | null>(null)
   const [timedOut, setTimedOut] = useState(false)
   const [openedAt, setOpenedAt] = useState<number | null>(null)
-  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastCommitIdRef = useRef<number | undefined>(undefined)
+  const requestSequenceRef = useRef(0)
+  const requestInFlightRef = useRef(false)
 
   const handleRealtimeUpdate = useCallback((update: ReportUpdate) => {
     const normalized = normalizeRealtimeReport(update)
@@ -63,6 +65,9 @@ export function useReportStatus(commitId?: number, enabled = false): UseReportSt
       return
     }
 
+    // A terminal realtime event is newer than any outstanding poll response.
+    requestSequenceRef.current += 1
+    requestInFlightRef.current = false
     setReportStatus((prev) => ({
       ...(prev || {}),
       ...normalized
@@ -73,19 +78,26 @@ export function useReportStatus(commitId?: number, enabled = false): UseReportSt
   const { isConnected, status: realtimeStatus } = useReportRealtime(commitId, handleRealtimeUpdate)
 
   const fetchStatus = useCallback(async () => {
-    if (!commitId) {
+    if (!commitId || requestInFlightRef.current) {
       return
     }
 
+    const requestSequence = ++requestSequenceRef.current
+    requestInFlightRef.current = true
     setLoading(true)
     try {
       const status = await getCommitReportStatus(String(commitId))
+      if (requestSequence !== requestSequenceRef.current) return
       setReportStatus(status)
       setError(null)
     } catch (err) {
+      if (requestSequence !== requestSequenceRef.current) return
       setError(err instanceof Error ? err.message : 'Failed to fetch report status')
     } finally {
-      setLoading(false)
+      if (requestSequence === requestSequenceRef.current) {
+        requestInFlightRef.current = false
+        setLoading(false)
+      }
     }
   }, [commitId])
 
@@ -110,6 +122,8 @@ export function useReportStatus(commitId?: number, enabled = false): UseReportSt
 
   useEffect(() => {
     if (!enabled || !commitId) {
+      requestSequenceRef.current += 1
+      requestInFlightRef.current = false
       setReportStatus(null)
       setError(null)
       setTimedOut(false)
@@ -118,6 +132,8 @@ export function useReportStatus(commitId?: number, enabled = false): UseReportSt
     }
 
     if (lastCommitIdRef.current !== commitId) {
+      requestSequenceRef.current += 1
+      requestInFlightRef.current = false
       setReportStatus(null)
       setTimedOut(false)
       lastCommitIdRef.current = commitId
@@ -129,46 +145,46 @@ export function useReportStatus(commitId?: number, enabled = false): UseReportSt
 
   useEffect(() => {
     if (!enabled || !commitId || !openedAt) {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current)
-        pollIntervalRef.current = null
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current)
+        pollTimerRef.current = null
       }
       return
     }
 
     if (isTerminal(reportStatus?.status)) {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current)
-        pollIntervalRef.current = null
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current)
+        pollTimerRef.current = null
       }
       return
     }
 
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current)
-      pollIntervalRef.current = null
+    if (pollTimerRef.current) {
+      clearTimeout(pollTimerRef.current)
+      pollTimerRef.current = null
     }
 
-    const graceTimer = setTimeout(() => {
-      pollIntervalRef.current = setInterval(() => {
+    let cancelled = false
+    const schedulePoll = (delay: number) => {
+      pollTimerRef.current = setTimeout(async () => {
         const age = Date.now() - openedAt
         if (age >= MAX_POLLING_MS) {
-          if (pollIntervalRef.current) {
-            clearInterval(pollIntervalRef.current)
-            pollIntervalRef.current = null
-          }
+          pollTimerRef.current = null
           setTimedOut(true)
           return
         }
-        fetchStatus()
-      }, isConnected ? 30000 : 5000)
-    }, REALTIME_GRACE_MS)
+        await fetchStatus()
+        if (!cancelled) schedulePoll(isConnected ? 30000 : 5000)
+      }, delay)
+    }
+    schedulePoll(REALTIME_GRACE_MS)
 
     return () => {
-      clearTimeout(graceTimer)
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current)
-        pollIntervalRef.current = null
+      cancelled = true
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current)
+        pollTimerRef.current = null
       }
     }
   }, [enabled, commitId, openedAt, reportStatus?.status, isConnected, fetchStatus])

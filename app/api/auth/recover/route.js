@@ -14,7 +14,7 @@ import {
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request) {
-  const rateLimitResponse = enforceAuthRateLimit(request, "recover", 5, 15 * 60 * 1000);
+  const rateLimitResponse = await enforceAuthRateLimit(request, "recover", 5, 15 * 60 * 1000);
   if (rateLimitResponse) return rateLimitResponse;
 
   const { email } = await request.json().catch(() => ({}));

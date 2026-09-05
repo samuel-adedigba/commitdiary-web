@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { httpRequest } from './httpClient'
+import { clearApiClientCaches } from './apiClient'
 
 interface AuthContextType {
     user: any | null
@@ -20,12 +21,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const response = await httpRequest('/api/auth/user', { cache: 'no-store' })
             if (!response.ok) {
+                clearApiClientCaches()
                 setUser(null)
                 return
             }
             const payload = await response.json<{ user?: unknown }>()
             const identity = payload.user ?? null
             if (!identity) {
+                clearApiClientCaches()
                 setUser(null)
                 return
             }
@@ -57,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const signOut = async () => {
         await httpRequest('/api/auth/sign-out', { method: 'POST' })
+        clearApiClientCaches()
         setUser(null)
     }
 

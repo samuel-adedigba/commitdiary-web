@@ -189,6 +189,17 @@ export const authProvider = {
     });
   },
 
+  async deleteProfileMedia(accessToken: string, path: string) {
+    requireSupabaseConfig();
+    return fetchAuthProvider(`${SUPABASE_URL}/storage/v1/object/profile-media/${path}`, {
+      method: "DELETE",
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  },
+
   publicUrlForProfileMedia(path: string) {
     // Provider-neutral stable asset ID -> public URL
     // Currently Supabase Storage public URL; future S3 will use signed URL or API-streamed response

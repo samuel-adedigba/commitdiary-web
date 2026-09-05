@@ -36,8 +36,20 @@ import {
   type WebhookSettings as WebhookSettingsType,
   type WebhookLog,
 } from "../../lib/apiClient";
+import { useApiResource } from "../../hooks/useApiResource";
+
+const DEFAULT_WEBHOOK_EVENTS = [
+  "report_completed",
+  "report_failed",
+  "backfill_started",
+  "backfill_completed",
+  "backfill_failed",
+  "sync_completed",
+  "repo_enabled",
+];
 
 export default function WebhookSettings() {
+  const settingsResource = useApiResource("settings:webhook", fetchWebhookSettings);
   const AlertTriangleIcon = FiAlertTriangle as ComponentType<{
     className?: string;
     "aria-hidden"?: boolean;
@@ -111,15 +123,7 @@ export default function WebhookSettings() {
   const [settings, setSettings] = useState<WebhookSettingsType | null>(null);
   const [webhookUrl, setWebhookUrl] = useState("");
   const [enabled, setEnabled] = useState(true);
-  const [selectedEvents, setSelectedEvents] = useState<string[]>([
-    "report_completed",
-    "report_failed",
-    "backfill_started",
-    "backfill_completed",
-    "backfill_failed",
-    "sync_completed",
-    "repo_enabled",
-  ]);
+  const [selectedEvents, setSelectedEvents] = useState<string[]>(DEFAULT_WEBHOOK_EVENTS);
 
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -168,24 +172,23 @@ export default function WebhookSettings() {
     },
   ];
 
-  // Load existing settings
+  // Synchronize editable form state from the shared request resource.
   useEffect(() => {
-    loadSettings();
-  }, []);
+    const data = settingsResource.data;
+    if (!data?.configured) return;
+    setSettings(data);
+    // The API intentionally returns a masked URL. Keep the input blank so
+    // saving event changes does not overwrite the stored secret.
+    setWebhookUrl("");
+    setEnabled(data.enabled ?? true);
+    setSelectedEvents(data.events || DEFAULT_WEBHOOK_EVENTS);
+  }, [settingsResource.data]);
 
-  async function loadSettings() {
-    try {
-      const data = await fetchWebhookSettings();
-      if (data.configured) {
-        setSettings(data);
-        // The API intentionally returns a masked URL. Keep the input blank so
-        // saving event changes does not overwrite the stored secret.
-        setWebhookUrl("");
-        setEnabled(data.enabled ?? true);
-        setSelectedEvents(data.events || selectedEvents);
-      }
-    } catch (err) {}
-  }
+  useEffect(() => {
+    if (settingsResource.error) {
+      setError("We could not load your webhook settings. Try again.");
+    }
+  }, [settingsResource.error]);
 
   async function handleSave() {
     if (!webhookUrl.trim() && !settings?.configured) {
@@ -215,6 +218,7 @@ export default function WebhookSettings() {
       });
 
       setSettings(result.settings);
+      await settingsResource.refresh().catch(() => undefined);
       setSuccess(result.message);
 
       // Auto-hide success message after 5 seconds

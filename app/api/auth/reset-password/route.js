@@ -10,7 +10,7 @@ import {
 } from "../_utils";
 
 export async function POST(request) {
-  const rateLimitResponse = enforceAuthRateLimit(request, "reset-password", 5, 15 * 60 * 1000);
+  const rateLimitResponse = await enforceAuthRateLimit(request, "reset-password", 5, 15 * 60 * 1000);
   if (rateLimitResponse) return rateLimitResponse;
 
   const accessToken = request.cookies.get(ACCESS_COOKIE)?.value;
@@ -58,7 +58,15 @@ export async function POST(request) {
     return response;
   }
 
+  await fetchAuthProvider(`${SUPABASE_URL}/auth/v1/logout`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  }).catch(() => undefined);
+
   const response = NextResponse.json({ success: true });
-  clearRecoveryCookies(response);
+  clearSessionCookies(response);
   return response;
 }

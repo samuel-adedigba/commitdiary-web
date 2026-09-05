@@ -18,13 +18,13 @@
     "git-analytics"
   ],
   "scripts": {
-    "dev": "cross-env NODE_ENV=development next dev",
+    "dev": "cross-env NODE_ENV=development next dev -p 4011",
     "build": "cross-env NODE_ENV=production next build",
     "deploy:preview": "pnpm dlx vercel",
     "deploy:production": "pnpm dlx vercel --prod",
     "start": "cross-env NODE_ENV=production next start",
     "start:prod": "cross-env NODE_ENV=production next start",
-    "start:dev": "cross-env NODE_ENV=development next dev",
+    "start:dev": "cross-env NODE_ENV=development next dev -p 4011",
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -34,7 +34,7 @@
     "@supabase/supabase-js": "^2.81.1",
     "@tanstack/react-table": "^8.10.0",
     "@vercel/analytics": "^1.0.1",
-    "axios": "^1.13.2",
+    "axios": "^1.18.0",
     "bootstrap": "^5.3.1",
     "classnames": "^2.3.2",
     "cross-env": "^7.0.3",
@@ -68,7 +68,7 @@
   },
   "pnpm": {
     "overrides": {
-      "next@15.5.21>postcss": "8.5.10"
+      "next@15.5.21>postcss": "8.5.23"
     }
   }
 }

@@ -28,6 +28,21 @@ const recentShareListResponses = new Map<string, { ts: number; data: SharesRespo
 const inFlightPublicShareRequests = new Map<string, Promise<ShareViewData>>()
 const recentPublicShareResponses = new Map<string, { ts: number; data: ShareViewData }>()
 
+/** Clear auth-bound data when the browser session changes or expires. */
+export function clearApiClientCaches() {
+    cachedUser = null
+    lastUserFetch = 0
+    inFlightUserFetch = null
+    inFlightCommitsRequests.clear()
+    recentCommitsResponses.clear()
+    inFlightReposReportsRequest = null
+    recentReposReportsResponse = null
+    inFlightShareListRequests.clear()
+    recentShareListResponses.clear()
+    inFlightPublicShareRequests.clear()
+    recentPublicShareResponses.clear()
+}
+
 export class ApiError extends Error {
     status: number
     code?: string
@@ -157,6 +172,11 @@ export interface AdminOverview {
     generated_at: string
 }
 
+export interface AdminAlerts {
+    alerts: Array<{ code: string; severity: 'critical' | 'high' | 'medium'; count: number; message: string }>
+    generated_at: string
+}
+
 export interface AdminUser {
     id: string
     email: string
@@ -270,6 +290,7 @@ function adminQuery(params?: AdminListParams): string {
 }
 
 export const getAdminOverview = (): Promise<AdminOverview> => getAdminResource('/v1/admin/overview')
+export const getAdminAlerts = (): Promise<AdminAlerts> => getAdminResource('/v1/admin/alerts')
 export const getAdminUsers = (params?: AdminListParams): Promise<AdminPage<AdminUser>> => getAdminResource(`/v1/admin/users${adminQuery(params)}`)
 export const getAdminPayments = (params?: AdminListParams): Promise<AdminPage<AdminPayment>> => getAdminResource(`/v1/admin/payments${adminQuery(params)}`)
 export const getAdminActivity = (params?: AdminListParams): Promise<AdminPage<AdminActivityItem>> => getAdminResource(`/v1/admin/activity${adminQuery(params)}`)
@@ -1067,6 +1088,7 @@ export const apiClient = {
     deleteWebhookSettings,
     fetchWebhookLogs,
     getAdminOverview,
+    getAdminAlerts,
     getAdminUsers,
     getAdminPayments,
     getAdminActivity,
@@ -1241,7 +1263,7 @@ export async function getEntitlements(): Promise<Entitlements> {
     return response.json<Entitlements>()
 }
 
-export async function createCheckout(plan_code: string, cadence: 'monthly' | 'annual' = 'monthly', idempotencyKey = globalThis.crypto.randomUUID()): Promise<{ url: string }> {
+export async function createCheckout(plan_code: string, cadence: 'monthly' | 'annual' = 'monthly', idempotencyKey = globalThis.crypto.randomUUID()): Promise<{ url: string | null; transactionId: string }> {
     const token = await getAuthToken()
     if (!token) throw new Error('Not authenticated')
     const response = await httpRequest(`${API_URL}/v1/billing/checkout`, {
@@ -1250,7 +1272,7 @@ export async function createCheckout(plan_code: string, cadence: 'monthly' | 'an
         body: JSON.stringify({ plan_code, cadence })
     })
     if (!response.ok) throw await getApiError(response, 'Could not start checkout')
-    return response.json<{ url: string }>()
+    return response.json<{ url: string | null; transactionId: string }>()
 }
 
 export async function createBillingPortal(): Promise<{ url: string }> {

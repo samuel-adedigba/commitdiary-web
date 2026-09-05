@@ -63,11 +63,24 @@ function toText(data: unknown): string {
     }
 }
 
+function getBrowserCsrfToken(): string | null {
+    if (typeof document === 'undefined') return null
+    const cookie = document.cookie.split(';').map((item) => item.trim()).find((item) => item.startsWith('csrf-token='))
+    return cookie ? decodeURIComponent(cookie.slice('csrf-token='.length)) : null
+}
+
 export async function httpRequest<T = unknown>(url: string, options: HttpRequestOptions = {}): Promise<HttpResponse<T>> {
+    const headers = headersToRecord(options.headers)
+    const method = (options.method || 'GET').toUpperCase()
+    const csrfToken = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) ? getBrowserCsrfToken() : null
+    if (csrfToken && !Object.keys(headers).some((key) => key.toLowerCase() === 'x-csrf-token')) {
+        headers['x-csrf-token'] = csrfToken
+    }
+
     const response = await axios<T>({
         url,
-        method: options.method || 'GET',
-        headers: headersToRecord(options.headers),
+        method,
+        headers,
         data: options.body,
         timeout: options.timeout ?? 15_000,
         signal: options.signal,

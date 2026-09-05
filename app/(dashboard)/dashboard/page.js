@@ -1,6 +1,6 @@
 "use client";
 // import node module libraries
-import { Fragment, useEffect, useState } from "react";
+import { Fragment } from "react";
 import Link from "next/link";
 import { Container, Col, Row } from "react-bootstrap";
 import { GitCommit, GitBranch, Layers, TrendingUp } from "react-feather";
@@ -16,44 +16,30 @@ import {
 // import API client
 import { apiClient } from "/lib/apiClient";
 import { useRealtimeCommits } from "/hooks/useRealtimeCommits";
+import { useApiResource } from "/hooks/useApiResource";
+
+async function getDashboardData() {
+  const [metrics, repositories, commitsResponse] = await Promise.all([
+    apiClient.getAllMetrics("30d"),
+    apiClient.getRepositories(),
+    apiClient.getCommits({ limit: 5 }),
+  ]);
+  return {
+    metrics,
+    repositories: Array.isArray(repositories) ? repositories : [],
+    recentCommits: Array.isArray(commitsResponse?.commits) ? commitsResponse.commits : [],
+  };
+}
 
 const Home = () => {
-  const [metrics, setMetrics] = useState(null);
-  const [repositories, setRepositories] = useState([]);
-  const [recentCommits, setRecentCommits] = useState([]);
-  const [loading, setLoading] = useState(true);
-
   const { commits: realtimeCommits, isConnected } = useRealtimeCommits();
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  useEffect(() => {
-    if (realtimeCommits?.length > 0) {
-      setRecentCommits(realtimeCommits.slice(0, 5));
-    }
-  }, [realtimeCommits]);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      const [metricsData, reposData, commitsResponse] = await Promise.all([
-        apiClient.getAllMetrics("30d"),
-        apiClient.getRepositories(),
-        apiClient.getCommits({ limit: 5 }),
-      ]);
-
-      setMetrics(metricsData);
-      setRepositories(Array.isArray(reposData) ? reposData : []);
-      setRecentCommits(
-        Array.isArray(commitsResponse?.commits) ? commitsResponse.commits : []
-      );
-    } catch (error) {
-    } finally {
-      setLoading(false);
-    }
-  };
+  const dashboard = useApiResource("dashboard:home", getDashboardData);
+  const metrics = dashboard.data?.metrics || null;
+  const repositories = dashboard.data?.repositories || [];
+  const recentCommits = realtimeCommits?.length > 0
+    ? realtimeCommits.slice(0, 5)
+    : dashboard.data?.recentCommits || [];
+  const loading = dashboard.isLoading;
 
   const statsData = metrics
     ? [

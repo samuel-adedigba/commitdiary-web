@@ -4,6 +4,7 @@ import { resolveDomainRoute } from './lib/domainRouting'
 // Auth provider adapter — single place that knows Supabase Auth endpoint shapes.
 // Middleware keeps the HttpOnly-cookie contract stable; provider swap changes only authProvider.
 import { authProvider } from './lib/authProvider'
+import { createApiProxyHeaders } from './lib/apiProxyHeaders'
 
 const ACCESS_COOKIE = 'cd_sb_access_token'
 const REFRESH_COOKIE = 'cd_sb_refresh_token'
@@ -21,6 +22,9 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || ''
  */
 
 export async function middleware(request: NextRequest) {
+  const csrfError = validateCsrfRequest(request)
+  if (csrfError) return csrfError
+
   if (request.nextUrl.pathname.startsWith('/v1') && API_URL) {
     return proxyApiRequest(request)
   }
@@ -38,7 +42,9 @@ export async function middleware(request: NextRequest) {
     const csrfToken = generateSecureToken()
     
     response.cookies.set('csrf-token', csrfToken, {
-      httpOnly: true, // Not accessible via JavaScript (XSS protection)
+      // Double-submit CSRF tokens must be readable by the browser client so it
+      // can echo the value in X-CSRF-Token. The session cookies remain HttpOnly.
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production', // HTTPS only in production
       sameSite: 'strict', // CSRF protection
       path: '/',
@@ -66,9 +72,21 @@ function createRouteResponse(request: NextRequest, route: ReturnType<typeof reso
   }
 }
 
+function validateCsrfRequest(request: NextRequest): NextResponse | null {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) return null
+  const path = request.nextUrl.pathname
+  if (!path.startsWith('/api/auth') && !path.startsWith('/v1')) return null
+
+  const cookieToken = request.cookies.get('csrf-token')?.value
+  const headerToken = request.headers.get('x-csrf-token')
+  if (!cookieToken || !headerToken || cookieToken.length > 128 || headerToken.length > 128 || cookieToken !== headerToken) {
+    return NextResponse.json({ error: 'Invalid CSRF token', code: 'CSRF_INVALID' }, { status: 403 })
+  }
+  return null
+}
+
 async function proxyApiRequest(request: NextRequest) {
   const targetUrl = new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, API_URL)
-  const requestHeaders = new Headers(request.headers)
 
   let accessToken = request.cookies.get(ACCESS_COOKIE)?.value
   const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value
@@ -80,9 +98,7 @@ async function proxyApiRequest(request: NextRequest) {
     accessToken = refreshedSession?.access_token || accessToken
   }
 
-  if (accessToken) {
-    requestHeaders.set('Authorization', `Bearer ${accessToken}`)
-  }
+  const requestHeaders = createApiProxyHeaders(request.headers, accessToken)
 
   const response = NextResponse.rewrite(targetUrl, {
     request: {
@@ -135,12 +151,11 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except:
-     * - api/auth (auth endpoints)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public files (public folder)
      */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!commitdiary-dev/|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

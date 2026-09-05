@@ -138,7 +138,6 @@ describe('useReportStatus', () => {
     })
 
     vi.useFakeTimers()
-    const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval')
     const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout')
 
     const { rerender, unmount } = renderHook(
@@ -158,7 +157,6 @@ describe('useReportStatus', () => {
     unmount()
 
     expect(clearTimeoutSpy).toHaveBeenCalled()
-    expect(clearIntervalSpy).toHaveBeenCalled()
 
     vi.useRealTimers()
   })

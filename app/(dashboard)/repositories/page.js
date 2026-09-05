@@ -26,6 +26,7 @@ import {
   RotateCw,
 } from "react-feather";
 import { apiClient } from "/lib/apiClient";
+import { logApiError, logError } from "/lib/alerts/errorLogger";
 import { useBackfillStatus } from "/hooks/useBackfillStatus";
 import { isActiveBackfill, isStalledBackfill } from "/lib/reports/backfillStatus";
 import BackfillProgress from "components/reports/BackfillProgress";
@@ -153,7 +154,7 @@ const RepositoriesPage = () => {
         );
       }
     } catch (error) {
-      console.error(`Failed to toggle reports for repo ${repoId}:`, error);
+      logApiError(`toggle reports for repo ${repoId}`, 500, error);
       // Revert to original state on error
       setRepositories((prev) =>
         prev.map((repo) =>
@@ -189,7 +190,7 @@ const RepositoriesPage = () => {
         setPollingRepos((prev) => new Set([...prev, repoIdStr]));
       }
     } catch (error) {
-      console.error(`Failed to retry backfill for repo ${repoId}:`, error);
+      logApiError(`retry backfill for repo ${repoId}`, 500, error);
       // Show error state to user
       setRepositories((prev) =>
         prev.map((repo) =>
@@ -221,7 +222,7 @@ const RepositoriesPage = () => {
     setIsRecovering(true);
     try {
       const result = await apiClient.recoverJobs();
-      console.log('Global recovery results:', result);
+      logError({ title: 'Job recovery', message: 'Global recovery completed', severity: 'info' });
       
       // Show success message to user
       alert(`Recovery completed: ${result.results.recovered} jobs recovered, ${result.results.failed} jobs failed`);
@@ -229,7 +230,7 @@ const RepositoriesPage = () => {
       // Refresh repositories to see updated status
       await fetchRepositories();
     } catch (error) {
-      console.error('Global recovery failed:', error);
+      logApiError('recover jobs', 500, error);
       alert(`Recovery failed: ${error.message}`);
     } finally {
       setIsRecovering(false);

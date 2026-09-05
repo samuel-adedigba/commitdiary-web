@@ -81,6 +81,31 @@ export async function putProfileMedia(params: PutProfileMediaParams): Promise<Pu
   return { path, publicUrl: authProvider.publicUrlForProfileMedia(path) };
 }
 
+export async function deleteProfileMedia(path: string, accessToken: string): Promise<void> {
+  const provider = getStorageProvider();
+  if (provider === "s3") {
+    const bucket = process.env.S3_BUCKET || process.env.NEXT_PUBLIC_S3_BUCKET;
+    const region = process.env.S3_REGION || process.env.AWS_REGION || "us-east-1";
+    const endpoint = process.env.S3_ENDPOINT || process.env.NEXT_PUBLIC_S3_ENDPOINT;
+    const accessKeyId = process.env.S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY;
+    if (!bucket) throw new Error("S3_BUCKET not configured for STORAGE_PROVIDER=s3");
+    const { S3Client, DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+    const s3 = new S3Client({
+      region,
+      ...(endpoint ? { endpoint, forcePathStyle: true } : {}),
+      ...(accessKeyId && secretAccessKey ? { credentials: { accessKeyId, secretAccessKey } } : {}),
+    });
+    await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: path }));
+    return;
+  }
+
+  const response = await authProvider.deleteProfileMedia(accessToken, path);
+  if (!response.ok && response.status !== 404) {
+    throw new Error(`Storage cleanup failed (${response.status})`);
+  }
+}
+
 export function getPublicUrl(path: string) {
   const provider = getStorageProvider();
   if (provider === "s3") {

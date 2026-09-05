@@ -8,7 +8,7 @@ type BillingCadence = "monthly" | "annual";
 
 type PaddlePreviewLineItem = {
   price?: { id?: unknown };
-  formattedTotals?: { subtotal?: unknown };
+  formattedTotals?: { total?: unknown };
 };
 
 type PaddlePreviewResponse = {
@@ -18,6 +18,7 @@ type PaddlePreviewResponse = {
 type PaddleClient = {
   Environment?: { set: (environment: "sandbox" | "production") => void };
   Initialize: (options: { token: string }) => void;
+  Checkout?: { open: (request: { transactionId: string }) => void };
   PricePreview: (request: { items: Array<{ priceId: string; quantity: number }> }) => Promise<PaddlePreviewResponse>;
 };
 
@@ -35,7 +36,7 @@ const paddleEnvironment = process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT === "produc
 
 let paddlePromise: Promise<PaddleClient> | null = null;
 
-function loadPaddleClient(): Promise<PaddleClient> {
+export function loadPaddleClient(): Promise<PaddleClient> {
   if (typeof window === "undefined") {
     return Promise.reject(new Error("Paddle pricing is only available in a browser."));
   }
@@ -83,10 +84,10 @@ export function extractLocalizedPrices(result: PaddlePreviewResponse): Record<st
 
   for (const item of lineItems) {
     const priceId = typeof item?.price?.id === "string" ? item.price.id : "";
-    const subtotal = typeof item?.formattedTotals?.subtotal === "string"
-      ? item.formattedTotals.subtotal
+    const total = typeof item?.formattedTotals?.total === "string"
+      ? item.formattedTotals.total
       : "";
-    if (priceId && subtotal) localizedPrices[priceId] = subtotal;
+    if (priceId && total) localizedPrices[priceId] = total;
   }
 
   return localizedPrices;

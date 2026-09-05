@@ -6,7 +6,7 @@ import { FiArrowUpRight, FiCreditCard } from "react-icons/fi";
 import { createCheckout, createBillingPortal } from "../../lib/apiClient";
 import { useEntitlements } from "../../hooks/useEntitlements";
 import { useBillingCatalog } from "../../hooks/useBillingCatalog";
-import { useLocalizedBillingPrices } from "../../hooks/useLocalizedBillingPrices";
+import { loadPaddleClient, useLocalizedBillingPrices } from "../../hooks/useLocalizedBillingPrices";
 
 type BillingIconProps = { size?: number; "aria-hidden"?: boolean };
 const ArrowUpRightIcon = FiArrowUpRight as ComponentType<BillingIconProps>;
@@ -44,8 +44,15 @@ export default function BillingSettings() {
       setActionLoading(plan_code);
       setError(null);
       const requestKey = globalThis.crypto.randomUUID();
-      const { url } = await createCheckout(plan_code, selectedCadence, requestKey);
-      window.location.href = url;
+      const { url, transactionId } = await createCheckout(plan_code, selectedCadence, requestKey);
+      if (url) {
+        window.location.href = url;
+        return;
+      }
+      const paddle = await loadPaddleClient();
+      if (typeof paddle.Checkout?.open !== "function") throw new Error("Paddle checkout could not be opened.");
+      paddle.Checkout.open({ transactionId });
+      setActionLoading(null);
     } catch (error: unknown) {
       setError(getBillingActionError(error, "Could not start checkout. Try again shortly."));
       setActionLoading(null);
